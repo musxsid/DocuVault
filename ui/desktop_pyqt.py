@@ -3915,6 +3915,9 @@ class AIAssistantPage(QWidget):
                 u_bg = "#1A1A22" if is_dark else "#F1F5F9"
                 u_border = "#2A2A38" if is_dark else "#E2E8F0"
                 u_text_color = "#FFFFFF" if is_dark else "#0F172A"
+                u_bubble.setMinimumWidth(120)
+                u_bubble.setMaximumWidth(640)
+                u_bubble.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
                 u_bubble.setStyleSheet(f"""
                     QFrame {{
                         background: {u_bg};
@@ -5071,6 +5074,7 @@ class AIDrawer(QFrame):
         self.scroll.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.scroll.viewport().setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.scroll.setWidgetResizable(True)
+        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.scroll.setStyleSheet("QScrollArea, QScrollArea > QWidget > QWidget { background: transparent; border: none; }")
         self.scroll.viewport().setStyleSheet("background: transparent; border: none;")
 
@@ -5078,7 +5082,7 @@ class AIDrawer(QFrame):
         self.chat_container.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.chat_container.setStyleSheet("background: transparent; border: none;")
         self.chat_lay = QVBoxLayout(self.chat_container)
-        self.chat_lay.setContentsMargins(4, 4, 4, 4)
+        self.chat_lay.setContentsMargins(4, 4, 8, 4)
         self.chat_lay.setSpacing(12)
 
         self.scroll.setWidget(self.chat_container)
