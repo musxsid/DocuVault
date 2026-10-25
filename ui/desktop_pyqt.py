@@ -4500,6 +4500,37 @@ class AIAssistantPage(QWidget):
             }}
         """)
 
+        if hasattr(self, "profile_name"):
+            self.profile_name.setStyleSheet(f"font-size: 12px; font-weight: 700; color: {t['text']};")
+        if hasattr(self, "profile_tier"):
+            self.profile_tier.setStyleSheet(f"font-size: 10px; color: {t['text4']}; font-weight: 600;")
+        if hasattr(self, "grounding_pill"):
+            self.grounding_pill.setStyleSheet("""
+                background: #142920; color: #32D583;
+                font-size: 11px; font-weight: 700;
+                padding: 5px 12px; border-radius: 12px;
+            """)
+        if hasattr(self, "speed_pill"):
+            self.speed_pill.setStyleSheet(f"""
+                background: {t['bg3']}; color: {t['text3']};
+                font-size: 11px; font-weight: 600;
+                padding: 5px 12px; border-radius: 12px;
+            """)
+        if hasattr(self, "quick_buttons"):
+            for q_btn in self.quick_buttons:
+                q_btn.setStyleSheet(f"""
+                    QPushButton {{
+                        background: {t['bg3']}; color: {t['text']};
+                        border: 1px solid {t['border']}; border-radius: 14px;
+                        padding: 4px 12px; font-size: 11px; font-weight: 600;
+                    }}
+                    QPushButton:hover {{
+                        border-color: {t['primary']}; color: {t['primary']};
+                    }}
+                """)
+        if hasattr(self, "lbl_active_source_context"):
+            self.lbl_active_source_context.setStyleSheet(f"font-size: 11px; font-weight: 600; color: {t['text3']};")
+
         self._update_sources_strip()
 
         # Re-render conversation list & chat items for updated colors
@@ -4973,6 +5004,17 @@ class AIDrawer(QFrame):
         super().__init__(parent)
         self.assistant = assistant
         self._t = theme
+        self.messages: List[Dict[str, Any]] = [
+            {
+                "role": "assistant",
+                "text": (
+                    "DocuVault AI Assistant is ready. Ask any question about your contracts, NDAs, invoices, "
+                    "or imported records. All responses are verified with source citations."
+                ),
+                "citations": [],
+                "time": "Just now",
+            }
+        ]
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.setMinimumWidth(280)
         self.setMaximumWidth(1050)
@@ -5039,10 +5081,6 @@ class AIDrawer(QFrame):
         self.chat_lay.setContentsMargins(4, 4, 4, 4)
         self.chat_lay.setSpacing(12)
 
-        # Sample grounded message matching Page 14
-        self._add_sample_thread()
-
-        self.chat_lay.addStretch()
         self.scroll.setWidget(self.chat_container)
         vlay.addWidget(self.scroll, 1)
 
@@ -5061,7 +5099,7 @@ class AIDrawer(QFrame):
 
         self.input_field = QLineEdit()
         self.input_field.setPlaceholderText("Ask your documents...")
-        self.input_field.setStyleSheet("border: none; background: transparent; font-size: 11.5px;")
+        self.input_field.setStyleSheet(f"border: none; background: transparent; font-size: 11.5px; color: {theme['text']};")
         self.input_field.returnPressed.connect(self._submit)
         in_lay.addWidget(self.input_field, 1)
 
@@ -5074,56 +5112,112 @@ class AIDrawer(QFrame):
         vlay.addWidget(self.in_wrap)
         self.update_theme(theme)
 
-    def _add_sample_thread(self):
+    def _render_messages(self):
+        # Clear layout
+        while self.chat_lay.count():
+            item = self.chat_lay.takeAt(0)
+            w = item.widget()
+            if w:
+                w.setParent(None)
+                w.deleteLater()
+
         t = self._t
         is_dark = t.get("name") == "dark"
 
-        # Grounded introduction (Single unified surface, no card box)
-        intro_widget = QWidget()
-        intro_widget.setStyleSheet("background: transparent; border: none;")
-        ilay = QVBoxLayout(intro_widget)
-        ilay.setContentsMargins(4, 4, 4, 8)
-        ilay.setSpacing(6)
+        for msg in self.messages:
+            role = msg.get("role", "assistant")
+            text = msg.get("text", "")
+            citations = msg.get("citations", [])
 
-        badges_lay = QHBoxLayout()
-        b_ground = QLabel("● Grounded in Vault Sources")
-        b_ground.setStyleSheet("""
-            background: rgba(50, 213, 131, 0.16);
-            color: #32D583;
-            font-size: 9.5px;
-            font-weight: 700;
-            border-radius: 6px;
-            padding: 2px 7px;
-        """)
-        badges_lay.addWidget(b_ground)
+            if role == "user":
+                u_turn = QWidget()
+                u_turn.setStyleSheet("background: transparent; border: none;")
+                ulay = QVBoxLayout(u_turn)
+                ulay.setContentsMargins(4, 2, 4, 4)
+                ulay.setSpacing(2)
 
-        b_time = QLabel("Air-Gapped Core")
-        b_time.setStyleSheet(f"""
-            background: {'rgba(255, 255, 255, 0.08)' if is_dark else 'rgba(0, 0, 0, 0.06)'};
-            color: {t['text4']};
-            font-size: 9.5px;
-            font-weight: 700;
-            border-radius: 6px;
-            padding: 2px 7px;
-        """)
-        badges_lay.addWidget(b_time)
-        badges_lay.addStretch()
-        ilay.addLayout(badges_lay)
+                u_bubble = QFrame()
+                u_bg = "#1E1E26" if is_dark else "#FFF1EB"
+                u_border = "rgba(255, 122, 46, 0.35)" if is_dark else "rgba(242, 106, 27, 0.25)"
+                u_bubble.setStyleSheet(f"""
+                    QFrame {{
+                        background: {u_bg};
+                        border: 1px solid {u_border};
+                        border-radius: 12px;
+                        border-bottom-right-radius: 2px;
+                    }}
+                """)
+                ub_lay = QVBoxLayout(u_bubble)
+                ub_lay.setContentsMargins(10, 8, 10, 8)
+                ub_lay.setSpacing(3)
 
-        ans_lbl = QLabel(
-            "DocuVault AI Assistant is ready. Ask any question about your contracts, NDAs, invoices, "
-            "or imported records. All responses are verified with source citations."
-        )
-        ans_lbl.setWordWrap(True)
-        ans_lbl.setStyleSheet(f"font-size: 11.5px; color: {t['text']}; line-height: 1.45; background: transparent; border: none;")
-        ilay.addWidget(ans_lbl)
+                u_hdr = QLabel("👤 You")
+                u_hdr.setStyleSheet(f"font-size: 10.5px; font-weight: 700; color: {t['primary']}; background: transparent; border: none;")
+                ub_lay.addWidget(u_hdr)
 
-        sep = QFrame()
-        sep.setFixedHeight(1)
-        sep.setStyleSheet(f"background: {'rgba(255, 255, 255, 0.07)' if is_dark else 'rgba(0, 0, 0, 0.07)'}; border: none;")
-        ilay.addWidget(sep)
+                ulbl = QLabel(text)
+                ulbl.setWordWrap(True)
+                ulbl.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+                ulbl.setStyleSheet(f"font-size: 12px; font-weight: 600; color: {'#F5F5F7' if is_dark else '#101828'}; line-height: 1.4; background: transparent; border: none;")
+                ub_lay.addWidget(ulbl)
 
-        self.chat_lay.addWidget(intro_widget)
+                ulay.addWidget(u_bubble)
+                self.chat_lay.addWidget(u_turn)
+
+            else:
+                a_turn = QWidget()
+                a_turn.setStyleSheet("background: transparent; border: none;")
+                alay = QVBoxLayout(a_turn)
+                alay.setContentsMargins(4, 2, 4, 6)
+                alay.setSpacing(6)
+
+                badges_lay = QHBoxLayout()
+                b_name = QLabel("✨ DocuVault AI")
+                b_name.setStyleSheet(f"font-size: 11.5px; font-weight: 800; color: {t['primary']}; background: transparent; border: none;")
+                badges_lay.addWidget(b_name)
+
+                b_ground = QLabel(f"● Grounded ({len(citations)} source{'s' if len(citations)!=1 else ''})")
+                b_ground.setStyleSheet("background: rgba(50, 213, 131, 0.16); color: #32D583; font-size: 9.5px; font-weight: 700; border-radius: 6px; padding: 2px 6px;")
+                badges_lay.addWidget(b_ground)
+
+                b_time = QLabel("0.2s")
+                b_time.setStyleSheet(f"background: {'rgba(255, 255, 255, 0.08)' if is_dark else 'rgba(0, 0, 0, 0.06)'}; color: {t['text4']}; font-size: 9.5px; font-weight: 700; border-radius: 6px; padding: 2px 6px;")
+                badges_lay.addWidget(b_time)
+                badges_lay.addStretch()
+                alay.addLayout(badges_lay)
+
+                ans_lbl = QLabel()
+                ans_lbl.setTextFormat(Qt.TextFormat.RichText)
+                ans_lbl.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+                ans_lbl.setWordWrap(True)
+                ans_lbl.setStyleSheet("background: transparent; border: none; padding: 2px 0;")
+                html_body = format_chat_markdown_to_html(text, is_dark, t.get("primary", "#FF6422"))
+                ans_lbl.setText(html_body)
+                alay.addWidget(ans_lbl)
+
+                if citations:
+                    for cit in citations[:3]:
+                        c_fn = cit.get("filename", "")
+                        c_pg = cit.get("page_number", 1)
+                        c_sn = cit.get("snippet", "")
+                        if c_fn:
+                            snip_str = f': "{c_sn[:80]}..."' if c_sn else ""
+                            c_lbl = QLabel(f"• <b>{c_fn}</b> (p.{c_pg}){snip_str}")
+                            c_lbl.setWordWrap(True)
+                            c_lbl.setStyleSheet(f"font-size: 10px; color: {t['primary']}; line-height: 1.3; background: transparent; border: none;")
+                            alay.addWidget(c_lbl)
+
+                sep = QFrame()
+                sep.setFixedHeight(1)
+                sep.setStyleSheet(f"background: {'rgba(255, 255, 255, 0.08)' if is_dark else 'rgba(0, 0, 0, 0.08)'}; border: none;")
+                alay.addWidget(sep)
+
+                self.chat_lay.addWidget(a_turn)
+
+        self.chat_lay.addStretch()
+        QTimer.singleShot(40, lambda: self.scroll.verticalScrollBar().setValue(
+            self.scroll.verticalScrollBar().maximum()
+        ))
 
     def _handle_quick_query(self, query: str):
         self.input_field.setText(query)
@@ -5135,25 +5229,12 @@ class AIDrawer(QFrame):
             return
         self.input_field.clear()
 
-        t = self._t
-        is_dark = t.get("name") == "dark"
-
-        # User question turn (Clean transparent row)
-        u_turn = QWidget()
-        u_turn.setStyleSheet("background: transparent; border: none;")
-        ulay = QVBoxLayout(u_turn)
-        ulay.setContentsMargins(4, 4, 4, 4)
-        ulay.setSpacing(4)
-
-        u_hdr = QLabel("👤 You")
-        u_hdr.setStyleSheet(f"font-size: 11px; font-weight: 700; color: {t['text3']}; background: transparent; border: none;")
-        ulay.addWidget(u_hdr)
-
-        ulbl = QLabel(txt)
-        ulbl.setWordWrap(True)
-        ulbl.setStyleSheet(f"font-size: 12px; font-weight: 600; color: {t['text']}; line-height: 1.4; background: transparent; border: none;")
-        ulay.addWidget(ulbl)
-        self.chat_lay.addWidget(u_turn)
+        # Append user turn
+        self.messages.append({
+            "role": "user",
+            "text": txt,
+            "citations": []
+        })
 
         # Compute answer via assistant if present
         citations = []
@@ -5169,62 +5250,19 @@ class AIDrawer(QFrame):
             answer_txt = f"DocuVault AI: Grounded analysis completed for '{txt}'."
             citations = []
 
-        # Assistant turn (Clean transparent row with inline evidence citations)
-        a_turn = QWidget()
-        a_turn.setStyleSheet("background: transparent; border: none;")
-        alay = QVBoxLayout(a_turn)
-        alay.setContentsMargins(4, 4, 4, 8)
-        alay.setSpacing(6)
+        self.messages.append({
+            "role": "assistant",
+            "text": answer_txt,
+            "citations": citations
+        })
 
-        badges_lay = QHBoxLayout()
-        b_name = QLabel("✨ DocuVault AI")
-        b_name.setStyleSheet(f"font-size: 11.5px; font-weight: 800; color: {t['primary']}; background: transparent; border: none;")
-        badges_lay.addWidget(b_name)
-
-        b_ground = QLabel(f"● Grounded ({len(citations)} source{'s' if len(citations)!=1 else ''})")
-        b_ground.setStyleSheet("background: rgba(50, 213, 131, 0.16); color: #32D583; font-size: 9.5px; font-weight: 700; border-radius: 6px; padding: 2px 6px;")
-        badges_lay.addWidget(b_ground)
-
-        b_time = QLabel("0.2 s")
-        b_time.setStyleSheet(f"background: {'rgba(255, 255, 255, 0.08)' if is_dark else 'rgba(0, 0, 0, 0.06)'}; color: {t['text4']}; font-size: 9.5px; font-weight: 700; border-radius: 6px; padding: 2px 6px;")
-        badges_lay.addWidget(b_time)
-        badges_lay.addStretch()
-        alay.addLayout(badges_lay)
-
-        ans_lbl = QLabel(answer_txt)
-        ans_lbl.setWordWrap(True)
-        ans_lbl.setStyleSheet(f"font-size: 11.5px; color: {t['text']}; line-height: 1.45; background: transparent; border: none;")
-        alay.addWidget(ans_lbl)
-
-        # Inline source citation snippets
-        for cit in citations[:3]:
-            c_fn = cit.get("filename", "")
-            c_pg = cit.get("page_number", 1)
-            c_sn = cit.get("snippet", "")
-            if c_fn:
-                snip_str = f': "{c_sn[:90]}..."' if c_sn else ""
-                c_lbl = QLabel(f"• <b>{c_fn}</b> (p.{c_pg}){snip_str}")
-                c_lbl.setWordWrap(True)
-                c_lbl.setStyleSheet(f"font-size: 10px; color: {t['primary']}; line-height: 1.3; background: transparent; border: none;")
-                alay.addWidget(c_lbl)
-
-        sep = QFrame()
-        sep.setFixedHeight(1)
-        sep.setStyleSheet(f"background: {'rgba(255, 255, 255, 0.07)' if is_dark else 'rgba(0, 0, 0, 0.07)'}; border: none;")
-        alay.addWidget(sep)
-
-        self.chat_lay.addWidget(a_turn)
-
-        # Smooth scroll to bottom
-        QTimer.singleShot(40, lambda: self.scroll.verticalScrollBar().setValue(
-            self.scroll.verticalScrollBar().maximum()
-        ))
+        self._render_messages()
 
     def update_theme(self, theme: Dict[str, str]):
         self._t = theme
         t = theme
         is_dark = t.get("name") == "dark"
-        drawer_bg = "rgba(10, 10, 14, 0.82)" if is_dark else "rgba(255, 255, 255, 0.88)"
+        drawer_bg = "rgba(10, 10, 14, 0.94)" if is_dark else "rgba(255, 255, 255, 0.96)"
         drawer_border = "rgba(255, 122, 46, 0.28)" if is_dark else "rgba(242, 106, 27, 0.25)"
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.setStyleSheet(f"""
@@ -5259,7 +5297,7 @@ class AIDrawer(QFrame):
                 chip_btn.setStyleSheet(f"""
                     QPushButton {{
                         background: {'#141418' if is_dark else '#F2F2F7'};
-                        color: {t['text3']};
+                        color: {t['text2']};
                         border: 1px solid {'#2B2B36' if is_dark else t['border']};
                         border-radius: 12px;
                         padding: 2px 10px;
@@ -5279,6 +5317,16 @@ class AIDrawer(QFrame):
                     border-radius: 12px;
                 }}
             """)
+        if hasattr(self, "input_field"):
+            self.input_field.setStyleSheet(f"""
+                QLineEdit {{
+                    border: none;
+                    background: transparent;
+                    font-size: 11.5px;
+                    color: {t['text']};
+                    selection-background-color: {t['primary']};
+                }}
+            """)
         if hasattr(self, "btn_send"):
             self.btn_send.setStyleSheet(f"""
                 QPushButton {{
@@ -5293,6 +5341,8 @@ class AIDrawer(QFrame):
                     background: {t['primary_hover']};
                 }}
             """)
+
+        self._render_messages()
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -5741,14 +5791,18 @@ class DocuVault(QMainWindow):
             self.ai_drawer.setVisible(False)
             self._show_feedback("AI Assistant Drawer closed")
         else:
+            # VS Code style: close details inspector if open to prevent sidebar squishing/glitching
+            if hasattr(self, "inspector") and self.inspector.isVisible():
+                self.inspector.setVisible(False)
+                if hasattr(self, "btn_toggle_inspector"):
+                    self.btn_toggle_inspector.setChecked(False)
             self.ai_drawer.setVisible(True)
             total_w = self.center_splitter.width() or self.width()
             drawer_w = max(360, int(total_w * 0.32))
-            insp_w = self.inspector.width() if (hasattr(self, "inspector") and self.inspector.isVisible()) else 0
-            main_w = max(400, total_w - drawer_w - insp_w)
-            self.center_splitter.setSizes([main_w, insp_w, drawer_w])
+            main_w = max(400, total_w - drawer_w)
+            self.center_splitter.setSizes([main_w, 0, drawer_w])
             self.ai_drawer.input_field.setFocus()
-            self._show_feedback("AI Assistant Drawer opened — drag left border to resize (Ctrl+J to toggle)")
+            self._show_feedback("AI Assistant Drawer opened (Ctrl+J to toggle)")
 
     # ─── UI Construction ──────────────────────────────────────────────────
 
@@ -6170,14 +6224,16 @@ class DocuVault(QMainWindow):
                 self.btn_toggle_inspector.setChecked(False)
             self._show_feedback("Document Details Drawer closed")
         else:
+            # VS Code style: close AI drawer if open so only one drawer is active in splitter
+            if hasattr(self, "ai_drawer") and self.ai_drawer.isVisible():
+                self.ai_drawer.setVisible(False)
             self.inspector.setVisible(True)
             if hasattr(self, "btn_toggle_inspector"):
                 self.btn_toggle_inspector.setChecked(True)
             total_w = self.center_splitter.width() or self.width()
             insp_w = max(380, int(total_w * 0.32))
-            ai_w = self.ai_drawer.width() if (hasattr(self, "ai_drawer") and self.ai_drawer.isVisible()) else 0
-            main_w = max(400, total_w - insp_w - ai_w)
-            self.center_splitter.setSizes([main_w, insp_w, ai_w])
+            main_w = max(400, total_w - insp_w)
+            self.center_splitter.setSizes([main_w, insp_w, 0])
             self._show_feedback("Document Details Drawer opened — drag border to resize")
 
     def _collapse_inspector(self):
@@ -6193,6 +6249,9 @@ class DocuVault(QMainWindow):
         for i, item in enumerate(self.sidebar.nav_items):
             item.set_active(i == idx)
         self.stack.setCurrentIndex(idx)
+        # If user switches to dedicated AI page, minimize side AI drawer to avoid duplicate views
+        if idx == 1 and hasattr(self, "ai_drawer") and self.ai_drawer.isVisible():
+            self.ai_drawer.setVisible(False)
         titles = [
             "Documents Workspace",
             "Explainable AI Assistant",

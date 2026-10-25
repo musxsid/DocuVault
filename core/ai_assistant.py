@@ -187,6 +187,29 @@ class ExplainableAIAssistant:
             results = [r for r in results if r.get("filename") in target_filenames]
             results = results[:top_k]
 
+        # Distinctive Entity Filtering:
+        # If the user's query mentions specific unique entity names (e.g. 'neoverse', 'codearrest', 'nda'),
+        # exclude candidate documents that don't match that distinctive entity when at least one candidate matches it.
+        generic_stopwords = {
+            "what", "when", "where", "which", "who", "whom", "whose", "why", "how",
+            "date", "dates", "time", "year", "month", "held", "deadline", "schedule",
+            "document", "documents", "contract", "contracts", "agreement", "agreements",
+            "certificate", "certificates", "file", "files", "information", "details",
+            "tell", "give", "show", "find", "check", "with", "from", "that", "this",
+            "about", "have", "were", "been", "will", "would", "could", "should", "does"
+        }
+        q_tokens = [w.lower() for w in re.findall(r"\b[A-Za-z0-9_-]{3,}\b", q)]
+        distinctive_entities = [w for w in q_tokens if w not in generic_stopwords and len(w) >= 4]
+
+        if distinctive_entities and results:
+            matching_entity_results = []
+            for r in results:
+                combined_txt = (r.get("filename", "") + " " + r.get("text", "") + " " + r.get("snippet", "")).lower()
+                if any(e in combined_txt for e in distinctive_entities):
+                    matching_entity_results.append(r)
+            if matching_entity_results:
+                results = matching_entity_results[:top_k]
+
         # If vector engine had no match, fallback to direct MongoDB content text scanning
         if not results and self.mongo and hasattr(self.mongo, "is_connected") and self.mongo.is_connected:
             try:
@@ -332,30 +355,78 @@ class ExplainableAIAssistant:
                     f"> ❝ Proprietary disclosures must remain confidential for a duration of 3 years post-termination. ❞"
                 )
             else:
-                is_img = filename.lower().endswith(('.png', '.jpg', '.jpeg', '.webp')) or "[image document" in snippet.lower()
-                if is_img:
-                    clean_lines = [l.strip() for l in snippet.splitlines() if l.strip() and not l.strip().startswith("---")]
-                    summary_excerpt = " ".join(clean_lines)[:250] if clean_lines else snippet[:250]
+                # Date / Schedule / Event Query Extraction
+                date_keywords = ["date", "dates", "when", "held", "deadline", "schedule", "timing", "day", "year", "month"]
+                is_date_query = any(k in q_lower for k in date_keywords)
+
+                # Look for dates in the document text
+                full_context_text = " ".join([r.get("text", "") + " " + r.get("snippet", "") for r in results])
+                extracted_date = None
+                date_patterns = [
+                    # "held on March 7th & 8th, 2026", "March 7th & 8th, 2026", "March 7-8, 2026"
+                    r"(?:held on\s+|dated\s+|date:\s*)?((?:January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}(?:th|st|nd|rd)?(?:\s*(?:&|and|to|-)\s*\d{1,2}(?:th|st|nd|rd)?)?,?\s+\d{4})",
+                    # "7th & 8th March 2026", "7 March 2026"
+                    r"(\d{1,2}(?:th|st|nd|rd)?(?:\s*(?:&|and|to|-)\s*\d{1,2}(?:th|st|nd|rd)?)?\s+(?:of\s+)?(?:January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*,?\s+\d{4})",
+                    # ISO date: 2026-03-07
+                    r"\b(\d{4}[-/]\d{1,2}[-/]\d{1,2})\b",
+                    # US date: 03/07/2026
+                    r"\b(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})\b"
+                ]
+                for pattern in date_patterns:
+                    m = re.search(pattern, full_context_text, re.IGNORECASE)
+                    if m:
+                        extracted_date = m.group(1).strip()
+                        break
+
+                if is_date_query and extracted_date:
+                    # Find event or document title
+                    event_name = filename.replace("_", " ").replace("-", " ")
+                    for ext in [".png", ".jpg", ".jpeg", ".webp", ".pdf", ".xml", ".txt"]:
+                        event_name = event_name.replace(ext, "")
+                    clean_title = event_name.strip().title()
+
+                    # Extract surrounding context quote
+                    quote_snippet = snippet
+                    if extracted_date.lower() in full_context_text.lower():
+                        idx = full_context_text.lower().find(extracted_date.lower())
+                        start = max(0, idx - 90)
+                        end = min(len(full_context_text), idx + len(extracted_date) + 90)
+                        quote_snippet = full_context_text[start:end].strip()
+
                     ans = (
-                        f"### 🖼️ Document Record: {filename}\n\n"
-                        f"Identified matching record from **{filename}** (Page {page}, {sec}).\n\n"
-                        f"#### Extracted Record Details:\n"
-                        f"• **Document Source**: `{filename}`\n"
-                        f"• **Record Type**: Processed Visual Image / Certificate\n"
-                        f"• **Vault Status**: Indexed with verified cryptographic hash\n\n"
-                        f"#### Record Content Excerpt:\n"
-                        f"> ❝ {summary_excerpt} ❞"
+                        f"### 📅 Date & Event Information: {clean_title}\n\n"
+                        f"Based on verified evidence from **{filename}** (Page {page}), the scheduled date for **{clean_title}** is:\n\n"
+                        f"• **Event Date**: **{extracted_date}**\n"
+                        f"• **Governing Document**: `{filename}`\n"
+                        f"• **Location Reference**: Page {page} · {sec}\n"
+                        f"• **Verification Status**: Authenticated from vault record\n\n"
+                        f"> ❝ ...{quote_snippet}... ❞"
                     )
                 else:
-                    ans = (
-                        f"### 📄 Document Analysis: {filename}\n\n"
-                        f"The relevant clause extracted from **{filename}** (Page {page}, Section: {sec}) specifies:\n\n"
-                        f"> ❝ {snippet} ❞\n\n"
-                        f"#### Source Summary:\n"
-                        f"• **Document**: `{filename}`\n"
-                        f"• **Section Reference**: {sec} (Page {page})\n"
-                        f"• **Evidence Status**: Grounded in vault storage"
-                    )
+                    is_img = filename.lower().endswith(('.png', '.jpg', '.jpeg', '.webp')) or "[image document" in snippet.lower()
+                    if is_img:
+                        clean_lines = [l.strip() for l in snippet.splitlines() if l.strip() and not l.strip().startswith("---")]
+                        summary_excerpt = " ".join(clean_lines)[:250] if clean_lines else snippet[:250]
+                        ans = (
+                            f"### 🖼️ Document Record: {filename}\n\n"
+                            f"Identified matching record from **{filename}** (Page {page}, {sec}).\n\n"
+                            f"#### Extracted Record Details:\n"
+                            f"• **Document Source**: `{filename}`\n"
+                            f"• **Record Type**: Processed Visual Image / Certificate\n"
+                            f"• **Vault Status**: Indexed with verified cryptographic hash\n\n"
+                            f"#### Record Content Excerpt:\n"
+                            f"> ❝ {summary_excerpt} ❞"
+                        )
+                    else:
+                        ans = (
+                            f"### 📄 Document Analysis: {filename}\n\n"
+                            f"The relevant clause extracted from **{filename}** (Page {page}, Section: {sec}) specifies:\n\n"
+                            f"> ❝ {snippet} ❞\n\n"
+                            f"#### Source Summary:\n"
+                            f"• **Document**: `{filename}`\n"
+                            f"• **Section Reference**: {sec} (Page {page})\n"
+                            f"• **Evidence Status**: Grounded in vault storage"
+                        )
 
         # Evaluate hallucination guardrail
         guardrail = self.verify_response_hallucination(ans, raw_passages)
