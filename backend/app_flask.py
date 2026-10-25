@@ -13,13 +13,29 @@ from flask import Flask, jsonify, request, send_file
 from flask_cors import CORS
 
 from backend.api_client import LLMClient, PublicHolidayClient
+from auth.keycloak_client import KeycloakClient
+from auth.local_auth import LocalAuthManager
+from auth.tier_manager import TierConfig, TierManager, UserTier
 from core.base_document import BaseDocument, DocumentFactory
 from core.catalog_manager import CatalogManager
-from core.exceptions import CorruptFileError, DocuVaultError, TamperedFileError
+from core.exceptions import (
+    AuthenticationError,
+    CorruptFileError,
+    DocuVaultError,
+    FeatureLockedError,
+    TamperedFileError,
+    TierLimitExceededError,
+)
 from core.organizer import FileOrganizerDaemon
 from core.parsers.binary_parser import BinaryParser
+from core.pii_redactor import PIIRedactor
 from core.storage_providers import CloudStorageProvider, LocalStorageProvider
 from core.vector_search import VectorSearchEngine
+from core.folder_tracker import DirectoryTracker
+from core.document_analyzer import DocumentAnalyzer
+from core.batch_exporter import BatchDossierExporter
+from core.retention_policy import RetentionPolicyManager
+from core.ai_assistant import ExplainableAIAssistant
 
 # Initialize Flask application
 app = Flask(__name__)
@@ -34,6 +50,10 @@ vector_engine = VectorSearchEngine()
 holiday_client = PublicHolidayClient(default_country="US")
 llm_client = LLMClient()
 organizer = FileOrganizerDaemon(vault_root="vault")
+local_auth = LocalAuthManager()
+keycloak_client = KeycloakClient()
+tracker = DirectoryTracker()
+assistant = ExplainableAIAssistant(vector_engine)
 
 # In-memory document registry for quick lookup: doc_id -> BaseDocument
 document_store: Dict[str, BaseDocument] = {}
@@ -58,6 +78,42 @@ def handle_docuvault_error(err: DocuVaultError):
         "context": err.context,
         "timestamp": err.timestamp,
     }), 400
+
+
+@app.errorhandler(TierLimitExceededError)
+def handle_tier_limit(err: TierLimitExceededError):
+    return jsonify({
+        "status": "error",
+        "error_code": err.error_code,
+        "message": err.message,
+        "resource": err.resource_name,
+        "current_count": err.current_count,
+        "limit": err.limit,
+        "tier": err.tier,
+        "suggestion": err.suggestion,
+    }), 403
+
+
+@app.errorhandler(FeatureLockedError)
+def handle_feature_locked(err: FeatureLockedError):
+    return jsonify({
+        "status": "error",
+        "error_code": err.error_code,
+        "message": err.message,
+        "feature": err.feature_name,
+        "tier": err.tier,
+        "suggestion": err.suggestion,
+    }), 403
+
+
+@app.errorhandler(AuthenticationError)
+def handle_auth_error(err: AuthenticationError):
+    return jsonify({
+        "status": "error",
+        "error_code": err.error_code,
+        "message": err.message,
+        "username_or_email": err.username_or_email,
+    }), 401
 
 
 @app.errorhandler(404)
@@ -95,7 +151,10 @@ def storage_mode():
     if request.method == "POST":
         data = request.get_json(silent=True) or {}
         new_mode = data.get("mode")
+        tier_str = request.headers.get("X-User-Tier") or data.get("tier")
         if new_mode in ["Local Drive", "Cloud Vault"]:
+            if new_mode == "Cloud Vault" and tier_str and not TierManager.can_access_feature(tier_str, "cloud_sync"):
+                raise FeatureLockedError("cloud_sync", tier_str, "Cloud Vault mirror requires Pro Plan.")
             active_storage_mode = new_mode
             if new_mode == "Cloud Vault":
                 cloud_storage.check_connection()
@@ -153,6 +212,10 @@ def upload_document():
     4. Indexes text chunks into pure NumPy VectorSearchEngine.
     5. Saves into active storage provider and registers in MultiIndex CatalogManager.
     """
+    tier_str = request.headers.get("X-User-Tier") or request.form.get("tier") or (request.get_json(silent=True) or {}).get("tier")
+    if tier_str:
+        TierManager.check_document_limit(tier_str, len(document_store))
+
     if "file" not in request.files:
         # Check if json text upload
         payload = request.get_json(silent=True)
@@ -268,9 +331,10 @@ def chat_rag():
     query = data.get("query", "").strip()
     category_filter = data.get("category", "All")
     top_k = int(data.get("top_k", 4))
-
-    if not query:
-        return jsonify({"status": "error", "message": "Query parameter cannot be empty."}), 400
+    tier_str = request.headers.get("X-User-Tier") or data.get("tier")
+    if tier_str:
+        session_query_count = int(data.get("session_query_count", 0))
+        TierManager.check_chat_limit(tier_str, session_query_count)
 
     # Execute vector retrieval
     results = vector_engine.search(
@@ -364,6 +428,242 @@ def trigger_sorter():
         "processed_count": len(results),
         "results": results,
     })
+
+
+@app.route("/api/auth/register", methods=["POST"])
+def auth_register():
+    data = request.get_json(silent=True) or {}
+    email = data.get("email", "").strip()
+    password = data.get("password", "")
+    full_name = data.get("full_name", "").strip()
+    country = data.get("country", "Global").strip()
+    tier = data.get("tier", UserTier.FREE.value)
+
+    if not email or not password or not full_name:
+        return jsonify({"status": "error", "message": "Email, password, and full name are required."}), 400
+
+    user_info = local_auth.register_user(email=email, password=password, full_name=full_name, country=country, tier=tier)
+    return jsonify({
+        "status": "success",
+        "message": "User registered successfully.",
+        "user": user_info,
+    }), 201
+
+
+@app.route("/api/auth/login", methods=["POST"])
+def auth_login():
+    data = request.get_json(silent=True) or {}
+    email = data.get("email", "").strip()
+    password = data.get("password", "")
+
+    if not email or not password:
+        return jsonify({"status": "error", "message": "Email and password are required."}), 400
+
+    user_info = keycloak_client.authenticate_password(email, password)
+    return jsonify({
+        "status": "success",
+        "message": "Authenticated successfully.",
+        "user": user_info,
+    })
+
+
+@app.route("/api/auth/upgrade", methods=["POST"])
+def auth_upgrade():
+    data = request.get_json(silent=True) or {}
+    email = data.get("email", "").strip()
+    new_tier = data.get("tier", UserTier.PRO.value)
+
+    if not email:
+        return jsonify({"status": "error", "message": "Email is required."}), 400
+
+    success = local_auth.update_user_tier(email, new_tier)
+    user_info = local_auth.get_user(email)
+    if not user_info:
+        return jsonify({"status": "error", "message": "User not found."}), 404
+
+    return jsonify({
+        "status": "success",
+        "message": f"User upgraded to {new_tier}.",
+        "user": user_info,
+    })
+
+
+@app.route("/api/auth/profile", methods=["GET"])
+def auth_profile():
+    email = request.args.get("email", "").strip()
+    if not email:
+        return jsonify({"status": "error", "message": "Email query parameter required."}), 400
+    user = local_auth.get_user(email)
+    if not user:
+        return jsonify({"status": "error", "message": "User not found."}), 404
+    tier = UserTier.from_str(user.get("tier", "Free"))
+    cfg = TierConfig.get(tier)
+    return jsonify({
+        "user": user,
+        "limits": cfg,
+    })
+
+
+@app.route("/api/documents/<doc_id>/redact", methods=["POST"])
+def redact_document_endpoint(doc_id: str):
+    tier_str = request.headers.get("X-User-Tier") or (request.get_json(silent=True) or {}).get("tier", "Free")
+    if not TierManager.can_access_feature(tier_str, "pii_redaction"):
+        raise FeatureLockedError("pii_redaction", tier_str, "Automated PII redaction requires Pro Plan.")
+
+    doc = document_store.get(doc_id)
+    if not doc:
+        return jsonify({"status": "error", "message": f"Document ID '{doc_id}' not found."}), 404
+
+    sanitized, detections = PIIRedactor.redact_text(doc.raw_text)
+    return jsonify({
+        "doc_id": doc_id,
+        "filename": doc.filename,
+        "total_redactions": len(detections),
+        "detections": detections,
+        "sanitized_preview": sanitized[:2000],
+    })
+
+
+# -------------------------------------------------------------------------
+# Git-Like Directory Tracker Endpoints
+# -------------------------------------------------------------------------
+
+@app.route("/api/tracker/folders", methods=["GET", "POST", "DELETE"])
+def tracker_folders_endpoint():
+    """Manage monitored directories for automated Git-like ingestion."""
+    if request.method == "GET":
+        folders = tracker.get_watched_folders()
+        return jsonify({
+            "status": "success",
+            "watched_folders": folders,
+            "total_monitored": len(folders),
+        })
+
+    data = request.get_json(silent=True) or {}
+    folder_path = data.get("folder_path", "").strip()
+    if not folder_path:
+        return jsonify({"status": "error", "message": "folder_path is required."}), 400
+
+    if request.method == "POST":
+        success = tracker.add_watched_folder(folder_path)
+        if success:
+            discovered = tracker.scan_folder(folder_path)
+            for d in discovered:
+                doc_id = d.get("doc_id")
+                if doc_id:
+                    catalog_mgr.add_document(d)
+            return jsonify({
+                "status": "success",
+                "message": f"Folder added to tracking.",
+                "folder_path": folder_path,
+                "ingested_count": len(discovered),
+            })
+        return jsonify({"status": "error", "message": "Invalid directory or already watched."}), 400
+
+    elif request.method == "DELETE":
+        removed = tracker.remove_watched_folder(folder_path)
+        return jsonify({
+            "status": "success" if removed else "error",
+            "message": "Folder removed from tracking." if removed else "Folder not found in tracked list.",
+        })
+
+
+# -------------------------------------------------------------------------
+# Automated Rebuttal & Legal Reply Drafting Endpoint
+# -------------------------------------------------------------------------
+
+@app.route("/api/documents/<doc_id>/rebuttal", methods=["GET"])
+def rebuttal_endpoint(doc_id: str):
+    """Generates formal contract amendment/rebuttal letter addressing discrepancies."""
+    doc = document_store.get(doc_id)
+    doc_dict = doc.to_dict() if doc else None
+    if not doc_dict:
+        # Check catalog
+        cat = catalog_mgr.get_all_documents()
+        doc_dict = next((d for d in cat if d.get("doc_id") == doc_id), None)
+
+    if not doc_dict:
+        return jsonify({"status": "error", "message": f"Document ID '{doc_id}' not found."}), 404
+
+    rebuttal_data = DocumentAnalyzer.draft_rebuttal_letter(doc_dict)
+    return jsonify({
+        "status": "success",
+        "doc_id": doc_id,
+        "rebuttal": rebuttal_data,
+    })
+
+
+# -------------------------------------------------------------------------
+# Batch Master Dossier Export Endpoint
+# -------------------------------------------------------------------------
+
+@app.route("/api/documents/export-dossier", methods=["POST"])
+def export_dossier_endpoint():
+    """Compiles repository documents into compliance-ready .zip dossier."""
+    data = request.get_json(silent=True) or {}
+    docs = catalog_mgr.get_all_documents()
+    if not docs:
+        docs = [d.to_dict() for d in document_store.values()]
+
+    if not docs:
+        return jsonify({"status": "error", "message": "No documents in repository to bundle."}), 400
+
+    output_dir = Path("vault/exports")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    zip_path = str(output_dir / f"dossier_{int(datetime.now().timestamp())}.zip")
+
+    res = BatchDossierExporter.export_dossier(docs, zip_path)
+    if res.get("success"):
+        return jsonify({
+            "status": "success",
+            "message": "Dossier compiled successfully.",
+            "export_details": res,
+        })
+    return jsonify({"status": "error", "message": res.get("error")}), 500
+
+
+# -------------------------------------------------------------------------
+# Automated Storage Retention Policy Endpoints
+# -------------------------------------------------------------------------
+
+@app.route("/api/retention/audit", methods=["GET"])
+def retention_audit_endpoint():
+    """Returns retention audit summary with archivable and shreddable counts."""
+    docs = catalog_mgr.get_all_documents() or [d.to_dict() for d in document_store.values()]
+    retention = RetentionPolicyManager()
+    summary = retention.get_retention_summary(docs)
+    return jsonify({
+        "status": "success",
+        "retention_summary": summary,
+    })
+
+
+@app.route("/api/retention/enforce", methods=["POST"])
+def retention_enforce_endpoint():
+    """Enforces auto-archival and DoD 5220.22-M secure shredding."""
+    docs = catalog_mgr.get_all_documents() or [d.to_dict() for d in document_store.values()]
+    retention = RetentionPolicyManager()
+    result = retention.enforce_retention_policies(docs)
+    return jsonify({
+        "status": "success",
+        "retention_result": result,
+    })
+
+
+# -------------------------------------------------------------------------
+# Multi-Document Synthesis Endpoint
+# -------------------------------------------------------------------------
+
+@app.route("/api/ai/multi-synthesis", methods=["POST"])
+def multi_synthesis_endpoint():
+    """Synthesizes query answers across multiple related documents simultaneously."""
+    data = request.get_json(silent=True) or {}
+    query = data.get("query", "").strip()
+    if not query:
+        return jsonify({"status": "error", "message": "query is required."}), 400
+
+    res = assistant.multi_document_synthesis(query)
+    return jsonify(res)
 
 
 def run_server(port: int = 5000, debug: bool = False):

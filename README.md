@@ -1,13 +1,36 @@
 # 🗄️ DocuVaultAI
 
-> **Offline-First Hybrid Document Intelligence, Legal Verifier & Lifecycle Planner**  
+> **Multi-Tenant Cloud-Ready SaaS & Offline-First Hybrid Document Intelligence, Legal Verifier & Lifecycle Planner**  
 > A production-grade, modular Python application engineered to strictly fulfill all requirements of the Advanced Python Curriculum across **Units 1 to 5**.
 
 ---
 
 ## 🌟 Executive Summary
 
-**DocuVaultAI** is an offline-first enterprise document system that brings together the speed and security of local filesystem operations with optional cloud vault synchronization. It features military-grade binary verification, regular-expression-based legal compliance checking, automated file sorting with audit trails, working-day action planning adjusted for public holidays, pure NumPy vector similarity search, and dual frontends—a native PyQt6 desktop application and an interactive Streamlit web analytics portal connected to a Flask REST API.
+**DocuVaultAI** is a modern, cloud-ready multi-tenant document intelligence and lifecycle platform featuring a **two-tier subscription model (`Free Trial` vs. `Pro / Upgraded Plan`)**. Built with an **offline-first, zero-knowledge architecture**, any user worldwide can register, authenticate, manage their documents, and upgrade their account without administrative role bottlenecks.
+
+The application combines:
+- **Unit 1 (OOP & GUI):** Abstract base classes, custom tier exception hierarchies, regular expression PII redaction, and a high-performance PyQt6 desktop interface (`QPropertyAnimation`, `QThread`, drag-and-drop, custom vector icons, zero invalid QSS cursor warnings).
+- **Unit 2 (APIs & Security):** Keycloak OIDC authentication, Google OAuth2 SSO via system browser and local callback server (`http://localhost:8088/callback`), OS keyring credential persistence with machine-salted encrypted fallback, public holiday calculations, and `file_ops.log` audit logging.
+- **Unit 3 (Web Frameworks):** Flask REST API microservices with tier quota enforcement (`/api/auth`, `/api/chat`, `/api/documents/<id>/redact`) and an interactive Streamlit Cloud Web Hub with dynamic tier gating and Matplotlib / Plotly visual analytics.
+- **Unit 4 (Document Engineering):** Magic-byte binary verification (`%PDF`, `PK\x03\x04`, `<?xml`), SHA-256 chunked hashing, PyMuPDF page-by-page extraction, and Pandas MultiIndex catalog manager with data imputation.
+- **Unit 5 (Mathematical Retrieval):** In-memory pure NumPy TF-IDF vector matrix computations, cosine similarity dot-product ranking, and boolean masking for cited anti-hallucination RAG answers.
+
+---
+
+## 💎 Two-Tier Subscription Model
+
+DocuVault eliminates complex administrative hierarchies in favor of direct, self-service subscription tiers:
+
+| Feature & Quota | 🆓 Free Trial Plan | ⚡ Pro / Upgraded Plan |
+| :--- | :--- | :--- |
+| **Document Storage Limit** | Up to **5 Documents** max | **Unlimited Documents & Folders** |
+| **AI RAG Queries** | **10 Queries** per session | **Unlimited Queries & OCR** |
+| **Storage Architecture** | Air-Gapped Local Vault (`vault/local`) | **Zero-Knowledge Cloud Sync & Web Hub** |
+| **Legal Clause Smart Diff** | 🔒 Locked (Upgrade required) | **Full Document Version History & Visual Diff** |
+| **Automated PII Redaction** | 🔒 Locked (Upgrade required) | **Regex PII Detection, Masking & Audit (SSN, Cards, Emails)** |
+| **Calendar Expiry Export** | 🔒 Locked (Upgrade required) | **iCalendar (`.ics`) & Google Calendar Export** |
+| **Desktop & Web Status** | `[FREE TIER]` Badge | `[PRO PLAN]` Radiant Blue Badge |
 
 ---
 
@@ -15,161 +38,136 @@
 
 ```mermaid
 graph TB
-    subgraph "Dual Frontends (Desktop & Web)"
-        PyQt["PyQt6 Desktop GUI\n(ui/desktop_pyqt.py)\n- Drag-and-drop intake\n- Non-blocking QThread workers\n- Verification badges\n- Slide-out AI chat drawer\n- 'Launch Cloud Web Hub' Button"]
-        Streamlit["Streamlit Cloud Hub\n(ui/dashboard_streamlit.py)\n- Plotly distribution donut\n- Storage footprint metrics\n- Interactive Gantt timeline\n- Cited RAG search assistant"]
+    subgraph "Dual Frontends (Desktop & Cloud Web)"
+        PyQt["PyQt6 Desktop GUI (ui/desktop_pyqt.py)\n- Onboarding 3-Slide Carousel\n- Keyring / PBKDF2 Login Dialog\n- Profile Modal with Quota Meters\n- Pro Upgrade Modal\n- PII Redaction Dialog\n- Non-blocking QThread Workers"]
+        Streamlit["Streamlit Cloud Web Hub (ui/dashboard_streamlit.py)\n- Tier Profile Chip & Live Meters\n- Interactive Pro Upgrade Flow\n- Cited RAG Assistant\n- Real-Time PII Redaction Studio\n- Statutory Action Planner"]
     end
 
-    subgraph "REST Services"
-        Flask["Flask REST API Backend\n(backend/app_flask.py)\n- Document ingestion & catalog\n- Cryptographic verification\n- RAG completions with citations\n- Audit log streamer"]
-        APIClient["API Consumers\n(backend/api_client.py)\n- Nager.Date Holiday API\n- Groq / Gemini / Ollama / Offline LLM"]
+    subgraph "Authentication & Security (auth/)"
+        LocalAuth["Air-Gapped LocalAuthManager\n(SQLite + PBKDF2-HMAC 100k rounds)"]
+        Keycloak["KeycloakClient & Google OAuth2 SSO\n(OIDC Authorization Code Flow on :8088)"]
+        SessionMgr["SessionManager\n(System Keyring + AES/XOR Encrypted Cache)"]
+        TierMgr["TierManager & UserTier Guard\n(Strict Quota Enforcement & @require_pro)"]
     end
 
-    subgraph "Core Business Logic"
-        DocOOP["Document OOP Hierarchy\n(core/base_document.py)\n- BaseDocument (ABC)\n- Legal, Medical, Academic, Financial\n- Regex entity & clause extraction\n- Polymorphic DocumentFactory"]
-        Exceptions["Custom Exception Hierarchy\n(core/exceptions.py)\n- CorruptFileError, MissingClauseError, TamperedFileError"]
-        Organizer["Automated Sorter & Audit\n(core/organizer.py)\n- File sorter into /Legal, etc.\n- file_ops.log audit logger"]
-        Catalog["Catalog Manager\n(core/catalog_manager.py)\n- Pandas MultiIndex DataFrame\n- Missing data imputation"]
-        VectorEngine["Vector Search & RAG\n(core/vector_search.py)\n- Pure NumPy TF-IDF matrix\n- Cosine dot-product ranking\n- Boolean masking filters"]
+    subgraph "REST Services & APIs (backend/)"
+        Flask["Flask REST API (backend/app_flask.py)\n- /api/auth/register, /api/auth/login, /api/auth/upgrade\n- /api/documents (5-doc quota check)\n- /api/chat (10-query quota check)\n- /api/documents/<id>/redact (Pro-only)"]
+        PublicHoliday["Nager.Date Public Holiday API\n(Statutory deadline shifting)"]
     end
 
-    subgraph "Parsers & Integrity"
-        BinParser["Binary Parser (core/parsers/binary_parser.py)\n- Magic bytes (%PDF, PK, xml)\n- Chunked SHA-256 hash"]
-        XMLParser["XML Parser (core/parsers/xml_parser.py)\n- ElementTree invoices & records"]
-        PDFParser["PDF Parser (core/parsers/pdf_parser.py)\n- PyMuPDF with text fallback"]
+    subgraph "Document Intelligence & Core (core/)"
+        DocOOP["Polymorphic Document OOP (core/base_document.py)\n- BaseDocument (ABC), Legal, Medical, Financial\n- DocumentFactory"]
+        PIIEngine["PIIRedactor (core/pii_redactor.py)\n- Regex SSN, Credit Card, Phone, Email"]
+        VectorEngine["VectorSearchEngine (core/vector_search.py)\n- Pure NumPy TF-IDF Matrix\n- Cosine Similarity Dot Products\n- Boolean Masking Filters"]
+        Catalog["CatalogManager (core/catalog_manager.py)\n- Pandas MultiIndex Catalog & Imputation"]
     end
 
-    subgraph "Hybrid Storage Layer"
-        LocalStorage["LocalStorageProvider\n(pathlib, os, shutil)\n- Direct laptop drive access"]
-        CloudStorage["CloudStorageProvider\n(REST HTTPS + local mirror)\n- Offline cache fallback"]
+    subgraph "Custom Keycloak Theme (keycloak_theme/docuvault/)"
+        Theme["Deep Slate (#0F172A) & Electric Blue Theme\n- login.ftl, register.ftl, docuvault.css"]
     end
 
-    PyQt -->|"Frontend Bridge (QDesktopServices)"| Streamlit
-    PyQt --> DocOOP
-    Streamlit --> Flask
-    Flask --> DocOOP
-    DocOOP --> BinParser
-    DocOOP --> XMLParser
-    DocOOP --> PDFParser
-    DocOOP --> LocalStorage
-    DocOOP --> CloudStorage
+    PyQt --> TierMgr
+    PyQt --> SessionMgr
+    PyQt --> Keycloak
+    PyQt --> LocalAuth
+    Streamlit --> TierMgr
+    Streamlit --> LocalAuth
+    Flask --> TierMgr
+    Flask --> LocalAuth
+    Flask --> Keycloak
+    DocOOP --> PIIEngine
     DocOOP --> VectorEngine
     DocOOP --> Catalog
-    Organizer --> LocalStorage
-    DocOOP --> APIClient
 ```
 
 ---
 
-## 📚 Curriculum Alignment & Unit Coverage
-
-| Unit | Curriculum Domain | Implementation in DocuVaultAI | Key Code Files |
-| :--- | :--- | :--- | :--- |
-| **Unit 1** | **OOP, Regex & PyQt6 GUI** | • `BaseDocument(ABC)` with polymorphic subclasses (`LegalDocument`, `MedicalDocument`, `AcademicDocument`, `FinancialDocument`, `GenericDocument`).<br>• Custom exception hierarchy with structured error codes (`CorruptFileError`, `MissingClauseError`, `TamperedFileError`).<br>• High-precision compiled regular expressions extracting dates, currency amounts, and mandatory legal clauses (*Jurisdiction*, *Notice Period*, *Effective Date*, *Liability*).<br>• Full PyQt6 desktop application with Signals & Slots, `QThread` non-blocking workers, native drag-and-drop dropzone, verification badges, and slide-out AI chat drawer. | [`core/base_document.py`](file:///d:/Programming/Projects/DocuVault/core/base_document.py)<br>[`core/exceptions.py`](file:///d:/Programming/Projects/DocuVault/core/exceptions.py)<br>[`ui/desktop_pyqt.py`](file:///d:/Programming/Projects/DocuVault/ui/desktop_pyqt.py) |
-| **Unit 2** | **Python APIs & Automation** | • RESTful consumption of the public **Nager.Date API** via `requests` with status code checks, timeout guards, and an offline fallback calendar cache.<br>• Working-day deadline recalculation shifting contractual expiries that land on weekends or national holidays to the next business day.<br>• Multi-LLM provider client (Groq, Google Gemini, local Ollama) with offline smart extractive summarizer.<br>• Background automated file sorter categorizing intake documents into `/Legal`, `/Medical`, `/Academic`, `/Financial` with timestamped operations entries in `file_ops.log`. | [`backend/api_client.py`](file:///d:/Programming/Projects/DocuVault/backend/api_client.py)<br>[`core/organizer.py`](file:///d:/Programming/Projects/DocuVault/core/organizer.py)<br>[`file_ops.log`](file:///d:/Programming/Projects/DocuVault/file_ops.log) |
-| **Unit 3** | **Web Frameworks & Frontend Bridge** | • Flask REST API microservice (`backend/app_flask.py`) with 12+ JSON endpoints (`/api/documents`, `/api/chat`, `/api/verify`, `/api/deadlines`, `/api/storage/mode`).<br>• Streamlit executive analytics portal (`ui/dashboard_streamlit.py`) with Plotly Donut and Bar charts, interactive Gantt timeline, and web-based RAG chat.<br>• **Frontend Interlinking Bridge**: Prominent header button **"🚀 Launch Cloud Web Hub"** in the PyQt6 desktop app that auto-spawns background servers if needed and opens `http://localhost:8501` in the user's default browser via `QDesktopServices.openUrl()`. | [`backend/app_flask.py`](file:///d:/Programming/Projects/DocuVault/backend/app_flask.py)<br>[`ui/dashboard_streamlit.py`](file:///d:/Programming/Projects/DocuVault/ui/dashboard_streamlit.py) |
-| **Unit 4** | **File Handling & Pandas** | • Binary mode (`rb`) magic byte inspection (`%PDF-`, `PK\x03\x04`, `<?xml`) detecting disguised malicious files (e.g. Windows PE executables disguised as `.pdf`).<br>• Chunked SHA-256 cryptographic hashing to detect post-ingestion file tampering.<br>• XML parsing using `xml.etree.ElementTree` for invoices, line items, and medical records.<br>• PyMuPDF page-by-page text parsing with fallback text extractor.<br>• Pandas `DataFrame` with hierarchical `MultiIndex` (`Storage_Mode`, `Category`, `Doc_ID`), cross-sectional slicing (`df.xs()`), and missing value imputation (median for financial totals, mode/fallback for jurisdiction). | [`core/parsers/binary_parser.py`](file:///d:/Programming/Projects/DocuVault/core/parsers/binary_parser.py)<br>[`core/parsers/xml_parser.py`](file:///d:/Programming/Projects/DocuVault/core/parsers/xml_parser.py)<br>[`core/parsers/pdf_parser.py`](file:///d:/Programming/Projects/DocuVault/core/parsers/pdf_parser.py)<br>[`core/catalog_manager.py`](file:///d:/Programming/Projects/DocuVault/core/catalog_manager.py) |
-| **Unit 5** | **NumPy Computations & Visualizations** | • Pure NumPy TF-IDF matrix computation **without scikit-learn**: vocabulary construction, term frequency (TF) matrix, smoothed inverse document frequency (IDF) array, and L2 row normalization with `np.linalg.norm`.<br>• Sub-second semantic search via vectorized dot products: `scores = np.dot(tfidf_matrix, query_vector)`.<br>• NumPy boolean array masking (`mask = scores >= threshold & category_mask`) for multi-criteria filtering.<br>• Structured NumPy arrays (`np.ndarray` with custom `dtype`) for ranking and provenance tracking.<br>• Matplotlib similarity score distribution charts. | [`core/vector_search.py`](file:///d:/Programming/Projects/DocuVault/core/vector_search.py) |
-
----
-
-## ⚡ Quickstart Guide
+## 🚀 Quickstart & Usage
 
 ### 1. Installation
-Install project dependencies:
+
+Ensure Python 3.10+ (or Python 3.14) is installed. Install all project dependencies:
+
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Generate Sample Test Documents
-Create realistic sample legal agreements, XML invoices, research papers, and a test disguised executable in `vault/intake`:
+### 2. Launching the PyQt6 Desktop App
+
+Launch the enterprise desktop application:
+
 ```bash
-python run.py --samples
+python run.py --desktop
 ```
 
-### 3. Run the Unit Test Suite (Units 1 to 5)
-Execute the comprehensive test suite verifying OOP, regex, APIs, Flask, Pandas, and NumPy:
+- **First Launch Experience:** You will be greeted by the **3-Slide Animated Onboarding Carousel** highlighting offline security, cryptographic validation, and cited AI retrieval.
+- **Authentication Gate:** The sleek **Sign In / Create Free Account** modal appears automatically. Sign in with existing credentials, register a new free account, or continue with Google SSO.
+- **Remember Me:** Persistent session caching ensures seamless auto-login on subsequent runs via the Windows Credential Manager / system keyring.
+- **Quota Warnings & Upgrade:** When a Free user ingests 5 documents or attempts to access PII Redaction, the **Pro Upgrade Modal** appears, providing feature comparisons and instant mock checkout.
+
+### 3. Launching the Streamlit Cloud Web Hub
+
+Start the interactive Streamlit analytics portal:
+
 ```bash
-python run.py --test
+streamlit run ui/dashboard_streamlit.py
+```
+Or open the desktop app and click the **"🌐 Launch Web Hub"** button in the header.
+
+### 4. Running the Flask REST API Backend
+
+Start the Flask microservices backend:
+
+```bash
+python backend/app_flask.py
 ```
 
-### 4. Launch the Applications
-- **Desktop Application (PyQt6 Native GUI):**
-  ```bash
-  python run.py --desktop
-  ```
-- **Web Analytics Hub (Flask API + Streamlit Portal):**
-  ```bash
-  python run.py --web
-  ```
-- **Flask REST API Service Only:**
-  ```bash
-  python run.py --backend
-  ```
+Endpoints include:
+- `POST /api/auth/register` — Register worldwide accounts
+- `POST /api/auth/login` — Authenticate via Keycloak or air-gapped local fallback
+- `POST /api/auth/upgrade` — Instant elevation to Pro Plan
+- `GET /api/auth/profile` — User profile and remaining quotas
+- `POST /api/documents/upload` — Ingest document (enforcing 5-doc Free quota)
+- `POST /api/chat` — Vector TF-IDF RAG query (enforcing 10-query Free quota)
+- `POST /api/documents/<id>/redact` — Pro-only automated PII redaction
 
 ---
 
-## 🖥️ Live Demonstration Walkthrough
+## 🧪 Comprehensive Automated Testing
 
-1. **Native Drag & Drop Intake (Unit 1):**
-   - Drag any `.pdf`, `.xml`, or `.txt` document from `vault/intake` directly into the PyQt6 dropzone.
-   - Non-blocking `QThread` workers validate binary magic bytes, compute SHA-256 hashes, extract legal clauses, and index vectors without freezing the GUI.
-2. **Security & Quarantine Demonstration (Unit 4):**
-   - Drag `vault/intake/Disguised_Malware_Payload.pdf` into the app.
-   - The binary validator detects the dangerous `MZ` header, raises `CorruptFileError`, quarantines the file into `vault/quarantine/`, displays a security alert, and logs the incident in `file_ops.log`.
-3. **Working-Day Action Planner (Unit 2):**
-   - Click the **📅 Working-Day Deadlines** tab.
-   - See how contractual deadlines that land on weekends or public holidays (e.g. Christmas or Thanksgiving) are automatically shifted forward to valid business days via the Nager.Date API.
-4. **Pure NumPy Semantic Search & AI Chat (Unit 5):**
-   - Type a natural-language query in the AI Assistant chat drawer (e.g. *"What is the governing jurisdiction and termination notice period?"*).
-   - In less than 10ms, pure NumPy computes the cosine similarity dot products, retrieves the exact text snippet, and cites:  
-     `Source: [NDA_Apex_Quantum_2026.pdf], Page: [1]`
-5. **Frontend Interlinking Bridge (Unit 3):**
-   - Click the green **"🚀 Launch Cloud Web Hub"** button in the PyQt6 header.
-   - The desktop app detects the local Streamlit service, starts it in the background if necessary, and launches the browser directly to `http://localhost:8501`.
+The project includes 40 comprehensive unit and integration tests across all curriculum units and multi-tenant capabilities:
 
----
-
-## 📁 Directory Structure
-
-```text
-DocuVault/
-├── backend/
-│   ├── __init__.py               # Backend package initializer
-│   ├── api_client.py             # PublicHolidayClient & Multi-LLM client (Groq, Gemini, Ollama)
-│   └── app_flask.py              # Flask REST service endpoints (/api/documents, /api/chat, etc.)
-├── core/
-│   ├── __init__.py               # Core package initializer
-│   ├── base_document.py          # Abstract BaseDocument & specialized polymorphic subclasses
-│   ├── catalog_manager.py        # Pandas DataFrame catalog with MultiIndexing and imputation
-│   ├── exceptions.py             # Custom exception hierarchy (CorruptFileError, MissingClauseError)
-│   ├── organizer.py              # File sorting daemon, regex form validation, and file_ops.log
-│   ├── storage_providers.py      # Abstract BaseStorageProvider, LocalStorage, CloudStorage
-│   ├── vector_search.py          # Pure NumPy TF-IDF matrix builder & cosine dot-product engine
-│   └── parsers/
-│       ├── __init__.py           # Parsers package initializer
-│       ├── binary_parser.py      # Magic byte validator and SHA-256 cryptographic hasher
-│       ├── pdf_parser.py         # PyMuPDF page-by-page extractor with text fallback
-│       └── xml_parser.py         # xml.etree.ElementTree invoice & record parser
-├── ui/
-│   ├── __init__.py               # UI package initializer
-│   ├── dashboard_streamlit.py    # Streamlit executive visual analytics portal
-│   └── desktop_pyqt.py           # Full PyQt6 GUI with QThread, drag-and-drop & Cloud Web Hub bridge
-├── tests/
-│   ├── __init__.py               # Tests package initializer
-│   └── test_units.py             # Comprehensive test suite covering Units 1 to 5
-├── vault/                        # Vault storage root (Local, Cloud Mirror, Quarantine, Plots)
-├── generate_samples.py           # Utility generating test documents (clean & corrupt)
-├── run.py                        # Unified CLI launcher
-├── file_ops.log                  # Sample generated operations audit log
-├── requirements.txt              # Complete dependencies specification
-└── README.md                     # Technical architecture documentation
+```bash
+python -m unittest discover tests
 ```
 
+### Test Coverage Highlights:
+- **`tests/test_units.py` (22 tests):** OOP hierarchy, binary magic-byte validation, regex contract clauses, holiday deadline calculations, Flask REST services, Pandas MultiIndex catalog, pure NumPy TF-IDF matrix math.
+- **`tests/test_phase1_auth_and_tiers.py` (10 tests):** Salted PBKDF2-HMAC hashing, offline Keycloak OIDC fallback, token caching, encrypted local session persistence, onboarding flags.
+- **`tests/test_phase4_end_to_end.py` (8 tests):** Worldwide self-registration, instant Pro upgrades, regex PII redaction, Free vs. Pro quota enforcement, Flask REST tier error codes (403 Forbidden).
+
 ---
 
-## 🔒 Security & Offline Resilience
+## 🎨 Enterprise Theme Tokens
 
-- **Zero-Network Functionality:** All critical operations—binary validation, cryptographic checksums, regex extraction, Pandas MultiIndex cataloging, and NumPy vector search—execute completely in-memory without needing internet access.
-- **Resilient Cloud Mirror:** `CloudStorageProvider` maintains a local offline mirror cache (`vault/cloud_mirror`), enabling uninterrupted read/write access even during network disruptions.
-- **Fail-Safe API Clients:** The holiday and LLM clients incorporate built-in offline calendar caches and local extractive summarizers that seamlessly activate whenever external REST endpoints are unreachable.
+DocuVault features tailored, distraction-free color tokens matching modern SaaS tools:
+
+- **Deep Slate Canvas:** `#0F172A`
+- **Obsidian Card Surface:** `#1E293B`
+- **Accent Orange:** `#FF6422` (Light) / `#FF7A3D` (Dark)
+- **Electric Blue (Pro):** `#2563EB`
+- **Border Gray:** `#334155`
+- **Verified Green:** `#10B981`
+- **Alert Red:** `#EF4444`
+
+---
+
+## 📜 Curriculum Compliance Matrix (Units 1 - 5)
+
+| Curriculum Unit | Core Module | Real Implementation in DocuVault |
+| :--- | :--- | :--- |
+| **Unit 1: OOP & GUI** | `core/base_document.py`, `ui/desktop_pyqt.py`, `core/pii_redactor.py` | `BaseDocument` ABC, `DocumentFactory`, `TierLimitExceededError`, `FeatureLockedError`, regex PII redaction, `QPropertyAnimation`, `QThread`. |
+| **Unit 2: APIs & Security** | `auth/keycloak_client.py`, `auth/session_manager.py`, `backend/api_client.py` | OIDC password grant, Google OAuth2 callback on port 8088, keyring credential caching, Nager.Date holiday calculations, `file_ops.log`. |
+| **Unit 3: Web Frameworks** | `backend/app_flask.py`, `ui/dashboard_streamlit.py` | Flask REST API with custom error handlers (403, 401, 400), Streamlit multi-tenant dashboard with live tier meters and PII studio. |
+| **Unit 4: Parsers & Pandas** | `core/parsers/binary_parser.py`, `core/catalog_manager.py` | Magic-byte file validation (`%PDF`, `PK`, `<?xml`), SHA-256 chunked hashing, Pandas MultiIndex catalog with imputation. |
+| **Unit 5: NumPy & Viz** | `core/vector_search.py` | Pure NumPy TF-IDF matrix, vectorized cosine dot products, boolean masking, Matplotlib similarity distribution charts. |

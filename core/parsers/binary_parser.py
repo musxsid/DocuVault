@@ -22,6 +22,10 @@ class BinaryParser:
         ".zip": (b"PK\x03\x04",),
         ".docx": (b"PK\x03\x04",),
         ".xlsx": (b"PK\x03\x04",),
+        ".png": (b"\x89PNG\r\n\x1a\n",),
+        ".jpg": (b"\xff\xd8\xff",),
+        ".jpeg": (b"\xff\xd8\xff",),
+        ".webp": (b"RIFF",),
     }
 
     # Dangerous signatures that should never be disguised as documents (e.g. Windows PE executables)

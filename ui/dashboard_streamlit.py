@@ -22,11 +22,22 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from backend.api_client import LLMClient, PublicHolidayClient
+from auth.keycloak_client import KeycloakClient
+from auth.local_auth import LocalAuthManager
+from auth.session_manager import SessionManager
+from auth.tier_manager import TierConfig, TierManager, UserTier
 from core.base_document import DocumentFactory
 from core.catalog_manager import CatalogManager
+from core.exceptions import FeatureLockedError, TierLimitExceededError
 from core.organizer import AuditLogger, FileOrganizerDaemon
 from core.parsers.binary_parser import BinaryParser
+from core.pii_redactor import PIIRedactor
 from core.vector_search import VectorSearchEngine
+from core.folder_tracker import DirectoryTracker
+from core.document_analyzer import DocumentAnalyzer
+from core.batch_exporter import BatchDossierExporter
+from core.retention_policy import RetentionPolicyManager
+from core.encryption import ZeroKnowledgeVaultCrypto
 
 # =============================================================================
 # Page Configuration
@@ -257,7 +268,17 @@ def get_theme_css(mode: str) -> str:
 
 @st.cache_data(ttl=3)
 def load_real_vault_documents() -> List[Dict[str, Any]]:
-    """Scans and parses 100% real documents from disk using DocumentFactory."""
+    """Scans and parses 100% real documents from MongoDB or disk using DocumentFactory."""
+    try:
+        from core.mongo_database import MongoDatabase
+        db = MongoDatabase()
+        if db.is_connected:
+            mongo_docs = db.list_documents()
+            if mongo_docs:
+                return mongo_docs
+    except Exception:
+        pass
+
     docs = []
     vault = Path("vault")
     for cat in ["Legal", "Financial", "Medical", "Academic", "General"]:
@@ -345,6 +366,24 @@ def get_indexed_vector_engine():
 # =============================================================================
 
 def main():
+    # Authentication state
+    if "user" not in st.session_state:
+        saved_session = SessionManager.load_session()
+        st.session_state.user = saved_session or {
+            "email": "user@docuvault.local",
+            "full_name": "Vault User",
+            "tier": "Free",
+            "country": "Global",
+        }
+    if "chat_count" not in st.session_state:
+        st.session_state.chat_count = 0
+
+    user = st.session_state.user
+    user_tier = user.get("tier", "Free")
+    is_pro = str(user_tier).capitalize() == "Pro"
+    tier_enum = UserTier.PRO if is_pro else UserTier.FREE
+    limits = TierConfig.get(tier_enum)
+
     # Theme state: default to Light Mode
     if "theme_mode" not in st.session_state:
         st.session_state.theme_mode = "light"
@@ -357,12 +396,46 @@ def main():
     with st.sidebar:
         st.markdown("""
             <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 12px;'>
-                <div style='width: 28px; height: 28px; background: #4F46E5; color: white;
+                <div style='width: 28px; height: 28px; background: #FF6422; color: white;
                             font-weight: 800; border-radius: 6px; display: flex;
                             align-items: center; justify-content: center; font-size: 12px;'>DV</div>
-                <div style='font-size: 15px; font-weight: 700;'>DocuVault</div>
+                <div style='font-size: 15px; font-weight: 700;'>DocuVault Cloud Hub</div>
             </div>
         """, unsafe_allow_html=True)
+
+        # User Profile & Tier Display
+        bg_col = "#1E293B" if is_dark else "#F1F5F9"
+        border_col = "#334155" if is_dark else "#CBD5E1"
+        badge_bg = "#1E3A8A" if is_pro else "#475569"
+        badge_col = "#93C5FD" if is_pro else "#E2E8F0"
+        st.markdown(f"""
+            <div style='background: {bg_col}; padding: 12px; border-radius: 8px; border: 1px solid {border_col}; margin-bottom: 12px;'>
+                <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;'>
+                    <span style='font-size: 13px; font-weight: 700;'>{user.get("full_name", "Vault User")}</span>
+                    <span style='background: {badge_bg}; color: {badge_col}; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 4px;'>
+                        {'PRO PLAN' if is_pro else 'FREE TRIAL'}
+                    </span>
+                </div>
+                <div style='font-size: 11px; color: #64748B;'>{user.get("email", "")}</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        docs = load_real_vault_documents()
+        doc_quota_str = "Unlimited" if is_pro else f"{min(len(docs), 5)} / 5"
+        chat_quota_str = "Unlimited" if is_pro else f"{min(st.session_state.chat_count, 10)} / 10"
+
+        st.caption(f"📁 Documents: **{doc_quota_str}**")
+        st.caption(f"💬 AI Queries: **{chat_quota_str}**")
+
+        if not is_pro:
+            if st.button("★ Upgrade to Pro ($19/mo)", type="primary", use_container_width=True):
+                local_auth = LocalAuthManager()
+                local_auth.update_user_tier(user["email"], "Pro")
+                st.session_state.user["tier"] = "Pro"
+                SessionManager.save_session(st.session_state.user, remember_me=True)
+                st.balloons()
+                st.success("Upgraded to Pro Plan! All limits unlocked.")
+                st.rerun()
 
         theme_choice = st.radio("Appearance", ["Light Mode", "Dark Mode"], index=0 if not is_dark else 1)
         new_mode = "light" if theme_choice == "Light Mode" else "dark"
@@ -372,18 +445,43 @@ def main():
 
         st.markdown("<hr style='margin: 14px 0; border: none; border-top: 1px solid #E2E8F0;'>", unsafe_allow_html=True)
 
+        with st.expander("🔑 AI API Keys (Cloud Search)", expanded=False):
+            st.caption("Configure API keys for real-time generative search across documents and images.")
+            llm_cli = LLMClient()
+            saved_keys = llm_cli.get_api_keys()
+
+            st_gem = st.text_input("Google Gemini API Key:", value=saved_keys.get("gemini_api_key", ""), type="password", key="st_gem_key")
+            st_groq = st.text_input("Groq Cloud API Key:", value=saved_keys.get("groq_api_key", ""), type="password", key="st_groq_key")
+            st_oa = st.text_input("OpenAI API Key:", value=saved_keys.get("openai_api_key", ""), type="password", key="st_oa_key")
+
+            c_save_k, c_test_k = st.columns(2)
+            with c_save_k:
+                if st.button("Save Keys", use_container_width=True):
+                    llm_cli.save_api_keys({
+                        "gemini_api_key": st_gem.strip(),
+                        "groq_api_key": st_groq.strip(),
+                        "openai_api_key": st_oa.strip(),
+                    })
+                    st.success("API keys saved!")
+            with c_test_k:
+                if st.button("Test Gemini", use_container_width=True):
+                    ok, msg = llm_cli.test_api_key("gemini", st_gem.strip())
+                    if ok:
+                        st.success(msg)
+                    else:
+                        st.error(msg)
+
         st.markdown("<p style='font-size: 11px; font-weight: 700; color: #94A3B8; margin-bottom: 4px;'>SYSTEM STATUS</p>", unsafe_allow_html=True)
-        st.markdown("<span style='color: #059669; font-weight: 600; font-size: 12px;'>● Engine Active</span>", unsafe_allow_html=True)
-        st.markdown("<p style='font-size: 11px; color: #64748B; margin-top: 2px;'>Offline-First Hybrid Architecture</p>", unsafe_allow_html=True)
+        st.markdown("<span style='color: #059669; font-weight: 600; font-size: 12px;'>● Air-Gapped Engine Active</span>", unsafe_allow_html=True)
+        st.markdown("<p style='font-size: 11px; color: #64748B; margin-top: 2px;'>MongoDB Layer Active \u2022 Pure NumPy</p>", unsafe_allow_html=True)
 
     # Header
     col_t1, col_t2 = st.columns([4, 1])
     with col_t1:
         st.markdown("<h2 style='margin: 0; font-weight: 800; letter-spacing: -0.5px;'>Document Intelligence & Verifier</h2>", unsafe_allow_html=True)
-        st.markdown("<p style='color: #64748B; font-size: 13px; margin-top: 2px;'>Minimal, cryptographic audit workspace with real-time clause extraction.</p>", unsafe_allow_html=True)
+        st.markdown("<p style='color: #64748B; font-size: 13px; margin-top: 2px;'>Enterprise SaaS architecture with multi-tenant tier access control.</p>", unsafe_allow_html=True)
 
     # Real Data Metrics Row
-    docs = load_real_vault_documents()
     total_docs = len(docs)
     total_bytes = sum(d.get("size_bytes", 0) for d in docs)
     total_kb = round(total_bytes / 1024, 1)
@@ -398,11 +496,12 @@ def main():
     st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
     # Navigation Tabs
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
         "  Documents  ",
         "  Inspector  ",
         "  Action Planner  ",
         "  AI Studio  ",
+        "  PII Redaction  ",
         "  Security & Audit  ",
     ])
 
@@ -464,6 +563,38 @@ def main():
                     })
                 st.dataframe(pd.DataFrame(table_data), use_container_width=True)
 
+        st.markdown("---")
+        with st.expander("📁 Monitored Directories (Git-Like Auto-Sync)", expanded=False):
+            tracker_inst = DirectoryTracker()
+            watched = tracker_inst.get_watched_folders()
+            c_dir1, c_dir2 = st.columns([3, 1])
+            with c_dir1:
+                new_dir = st.text_input("Track New Directory:", placeholder="/path/to/folder or D:\\Documents\\Contracts")
+            with c_dir2:
+                st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+                if st.button("+ Track Folder"):
+                    if new_dir and os.path.isdir(new_dir):
+                        tracker_inst.add_watched_folder(new_dir)
+                        st.success(f"Tracking folder: {new_dir}")
+                        st.rerun()
+                    else:
+                        st.error("Invalid directory path.")
+
+            if watched:
+                st.markdown(f"**Currently Watching {len(watched)} Directory(s):**")
+                for w in watched:
+                    c_p, c_btn = st.columns([4, 1])
+                    c_p.markdown(f"• `{w}`")
+                    if c_btn.button("Untrack", key=f"untrack_{w}"):
+                        tracker_inst.remove_watched_folder(w)
+                        st.rerun()
+                if st.button("⚡ Rescan All Monitored Directories"):
+                    found = tracker_inst.scan_all_watched()
+                    st.success(f"Rescanned folders. Processed {len(found)} documents.")
+                    st.rerun()
+            else:
+                st.caption("No directories currently tracked. Add a folder above to enable Git-like live auto-sync.")
+
     # -------------------------------------------------------------------------
     # Tab 2: Document Inspector (Real Clauses, Provenance & Text)
     # -------------------------------------------------------------------------
@@ -491,15 +622,33 @@ def main():
                     """, unsafe_allow_html=True)
 
                 with col_clauses:
-                    clauses = curr.get("clauses", {})
+                    full_text = " ".join([p.get("text", "") for p in curr.get("pages", [])]) or curr.get("raw_text", "")
+                    summary_bullets = curr.get("executive_summary") or DocumentAnalyzer.extract_executive_summary(full_text, curr.get("filename", ""))
+                    risk_data = curr.get("risk_profile") or DocumentAnalyzer.calculate_risk_profile(full_text, curr.get("clauses"))
+
                     st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-                    st.markdown("#### Extracted Clauses & Entities")
-                    if clauses:
-                        for k, v in clauses.items():
-                            st.markdown(f"**{k}:** `{v}`")
-                    else:
-                        st.markdown("*No legal clauses detected in document.*")
+                    st.markdown("#### Executive Summary (3-Bullet AI)")
+                    for b in summary_bullets:
+                        st.markdown(f"• {b}")
+
+                    rbadge = risk_data.get("risk_badge", "Low")
+                    rcolor = risk_data.get("color", "#10B981")
+                    st.markdown(f"**Risk Level:** <span style='color:{rcolor}; font-weight:bold;'>● {rbadge} ({risk_data.get('score', 90)}/100)</span>", unsafe_allow_html=True)
+
+                    counterparties = curr.get("counterparties") or DocumentAnalyzer.extract_counterparties(full_text)
+                    if counterparties:
+                        st.markdown(f"**Counterparties:** {', '.join(counterparties[:3])}")
                     st.markdown("</div>", unsafe_allow_html=True)
+
+                with st.expander("⚖️ Draft Contract Rebuttal & Amendment Letter", expanded=False):
+                    rebuttal_doc = DocumentAnalyzer.draft_rebuttal_letter(curr)
+                    st.text_area("Legal Amendment Letter", rebuttal_doc.get("letter_text", ""), height=200)
+                    st.download_button(
+                        label="Download Rebuttal Letter (.txt)",
+                        data=rebuttal_doc.get("letter_text", ""),
+                        file_name=f"rebuttal_{curr.get('filename')}.txt",
+                        mime="text/plain",
+                    )
 
                 with st.expander("View Full Extracted Text", expanded=False):
                     pages = curr.get("pages", [])
@@ -508,6 +657,22 @@ def main():
                             st.text_area(f"Page {p.get('page_number')}", p.get("text", ""), height=150)
                     else:
                         st.text_area("Content", curr.get("raw_text", ""), height=200)
+
+                st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+                col_del, _ = st.columns([1, 2])
+                with col_del:
+                    if st.button("🗑️ Remove Document from Vault", type="secondary", key=f"del_doc_{curr['doc_id']}"):
+                        try:
+                            from core.mongo_database import MongoDatabase
+                            db = MongoDatabase()
+                            if db.is_connected:
+                                db.delete_document(curr["doc_id"])
+                                db.log_audit("DELETE", f"Removed '{curr['filename']}' via Web Hub", curr["doc_id"])
+                        except Exception:
+                            pass
+                        st.success(f"Removed '{curr['filename']}' from repository index.")
+                        st.cache_data.clear()
+                        st.rerun()
 
     # -------------------------------------------------------------------------
     # Tab 3: Action Planner (Real Contract Deadlines with Holiday Shift)
@@ -537,30 +702,86 @@ def main():
     # Tab 4: AI Intelligence Studio (Pure NumPy Vector Retrieval)
     # -------------------------------------------------------------------------
     with tab4:
-        st.markdown("<p style='color: #64748B; font-size: 13px;'>Pure NumPy TF-IDF cosine similarity search across genuine document pages.</p>", unsafe_allow_html=True)
+        st.markdown("<p style='color: #64748B; font-size: 13px;'>Real-time AI question answering and pure NumPy TF-IDF vector retrieval across documents and images.</p>", unsafe_allow_html=True)
 
-        query = st.text_input("Ask a question:", placeholder="e.g. What is the governing jurisdiction?")
-        if st.button("Search & Analyze", type="primary"):
-            if query.strip():
-                with st.spinner("Searching document index..."):
-                    engine = get_indexed_vector_engine()
-                    results = engine.search(query, top_k=3)
-                    llm = LLMClient()
-                    rag = llm.generate_rag_response(query, results)
+        if not is_pro and st.session_state.chat_count >= 10:
+            st.error("Free Trial AI query limit reached (10 / 10 queries used). Please upgrade to Pro in the sidebar for unlimited queries.")
+        else:
+            query = st.text_input("Ask a question about your documents & images:", placeholder="e.g. What is the governing jurisdiction or termination notice?")
+            if st.button("Search & Analyze", type="primary"):
+                if query.strip():
+                    with st.spinner("Analyzing indexed documents & images..."):
+                        engine = get_indexed_vector_engine()
+                        results = engine.search(query, top_k=4)
+                        llm = LLMClient()
+                        rag = llm.generate_rag_response(query, results)
+                        st.session_state.chat_count += 1
 
-                    st.markdown("#### Intelligence Response")
-                    st.markdown(rag["answer"])
+                        st.markdown("#### Intelligence Response")
+                        provider_badge = rag.get("provider", "DocuVault Intelligence")
+                        st.caption(f"Provider: **{provider_badge}**")
+                        st.markdown(rag["answer"])
 
-                    citations = rag.get("citations", [])
-                    if citations:
-                        st.markdown("##### Citations")
-                        for c in citations:
-                            st.markdown(f"- **{c['citation']}** &nbsp;|&nbsp; Similarity Score: `{c['score']:.4f}`")
+                        citations = rag.get("citations", [])
+                        if citations:
+                            st.markdown("##### Grounded Evidence Citations")
+                            for c in citations:
+                                fname = c.get("filename", "Document")
+                                pnum = c.get("page_number", c.get("page", 1))
+                                sec = c.get("section_title", "General")
+                                score = c.get("score", 0.0)
+                                snippet = c.get("snippet", "")
+                                with st.expander(f"📄 {fname} (Page {pnum}, {sec}) — Match: {score*100:.1f}%"):
+                                    if snippet:
+                                        st.markdown(f"> *\"{snippet}\"*")
+                                    st.caption(f"Citation Link: `Source: [{fname}], Page: [{pnum}], Section: [{sec}]`")
 
     # -------------------------------------------------------------------------
-    # Tab 5: Security & Operations Audit
+    # Tab 5: Confidential PII Redaction Suite (Unit 1 & Unit 4 Pro Feature)
     # -------------------------------------------------------------------------
     with tab5:
+        st.markdown("<p style='color: #64748B; font-size: 13px;'>Regex-powered Confidentiality & PII Compliance Sanitizer (Unit 1 & Unit 4).</p>", unsafe_allow_html=True)
+        if not is_pro:
+            st.warning("🔒 **Pro Feature Locked:** Automated PII Redaction requires the Pro Plan.")
+            st.info("Upgrade to Pro to automatically detect, mask, and audit Social Security Numbers, Credit Cards, Emails, and Phone Numbers.")
+            if st.button("Unlock PII Redaction Now", type="primary", key="unlock_pii_btn"):
+                local_auth = LocalAuthManager()
+                local_auth.update_user_tier(user["email"], "Pro")
+                st.session_state.user["tier"] = "Pro"
+                SessionManager.save_session(st.session_state.user, remember_me=True)
+                st.balloons()
+                st.rerun()
+        else:
+            if docs:
+                selected_filename = st.selectbox("Select document to redact:", [d["filename"] for d in docs], key="pii_doc_sel")
+                target_doc = next((d for d in docs if d["filename"] == selected_filename), None)
+                if target_doc:
+                    full_text = " ".join([p.get("text", "") for p in target_doc.get("pages", [])]) or target_doc.get("raw_text", "")
+
+                    audit_counts = PIIRedactor.audit_pii(full_text)
+                    c_s, c_c, c_e, c_p = st.columns(4)
+                    c_s.metric("SSN Matches", audit_counts.get("SSN", 0))
+                    c_c.metric("Credit Cards", audit_counts.get("CREDIT_CARD", 0))
+                    c_e.metric("Emails", audit_counts.get("EMAIL", 0))
+                    c_p.metric("Phone Numbers", audit_counts.get("PHONE", 0))
+
+                    if st.button("Execute Compliance Redaction", type="primary"):
+                        sanitized, detections = PIIRedactor.redact_text(full_text)
+                        st.success(f"Sanitized {len(detections)} PII entities.")
+                        st.text_area("Redacted Text Preview", sanitized, height=260)
+                        st.download_button(
+                            label="Download Sanitized Document",
+                            data=sanitized,
+                            file_name=f"redacted_{target_doc['filename']}.txt",
+                            mime="text/plain",
+                        )
+            else:
+                st.info("No documents available for redaction.")
+
+    # -------------------------------------------------------------------------
+    # Tab 6: Security & Operations Audit
+    # -------------------------------------------------------------------------
+    with tab6:
         st.markdown("#### Quarantined Threats")
         if quarantined:
             st.dataframe(pd.DataFrame(quarantined), use_container_width=True)

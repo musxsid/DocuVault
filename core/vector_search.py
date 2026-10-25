@@ -19,7 +19,7 @@ from core.exceptions import VectorIndexError
 
 
 class TextChunk:
-    """Represents a text segment with provenance metadata."""
+    """Represents a text segment with provenance metadata and hierarchical structural context."""
 
     def __init__(
         self,
@@ -29,6 +29,7 @@ class TextChunk:
         category: str,
         page_number: int,
         text: str,
+        section_title: str = "General",
     ) -> None:
         self.chunk_id = chunk_id
         self.doc_id = doc_id
@@ -36,6 +37,7 @@ class TextChunk:
         self.category = category
         self.page_number = page_number
         self.text = text
+        self.section_title = section_title
         self.tokens: List[str] = []
 
 
@@ -135,6 +137,69 @@ class VectorSearchEngine:
                 if chunk.tokens:
                     self.chunks.append(chunk)
                     count += 1
+
+        self.is_indexed = False
+        return count
+
+    def add_hierarchical_document_chunks(
+        self,
+        doc_id: str,
+        filename: str,
+        category: str,
+        pages: List[Dict[str, Any]],
+        chunk_size: int = 500,
+    ) -> int:
+        """
+        Hierarchical Chunking:
+        Segments documents based on logical headings and structural paragraphs instead of arbitrary
+        character windows, preserving the full surrounding context and section breadcrumbs.
+        """
+        count = 0
+        heading_re = re.compile(
+            r"^(?:#{1,4}\s+|ARTICLE\s+[0-9IVXLCDM]+|SECTION\s+[0-9IVXLCDM]+|CLAUSE\s+[0-9IVXLCDM]+|[A-Z0-9\s\.\-]{3,40}:?$)",
+            re.IGNORECASE,
+        )
+
+        for page in pages:
+            page_num = page.get("page_number", 1)
+            raw_text = page.get("text", "")
+            if not raw_text.strip():
+                continue
+
+            current_section = f"Page {page_num} Overview"
+            lines = raw_text.splitlines()
+            current_body_lines = []
+
+            def _flush_chunk(sec_name, text_lines):
+                nonlocal count
+                t = " ".join([l.strip() for l in text_lines if l.strip()])
+                if not t:
+                    return
+                c_id = f"{doc_id}_p{page_num}_hc{count}"
+                enriched_text = f"[{sec_name}] {t}"
+                chunk = TextChunk(c_id, doc_id, filename, category, page_num, enriched_text, section_title=sec_name)
+                chunk.tokens = self.tokenize(enriched_text)
+                if chunk.tokens:
+                    self.chunks.append(chunk)
+                    count += 1
+
+            for line in lines:
+                sline = line.strip()
+                if not sline:
+                    continue
+                if heading_re.match(sline) and len(sline) < 70 and not sline.endswith("."):
+                    if current_body_lines:
+                        _flush_chunk(current_section, current_body_lines)
+                        current_body_lines = []
+                    current_section = sline.lstrip("#").strip()
+                else:
+                    current_body_lines.append(sline)
+                    if sum(len(l) for l in current_body_lines) >= chunk_size:
+                        _flush_chunk(current_section, current_body_lines)
+                        current_body_lines = []
+
+            if current_body_lines:
+                _flush_chunk(current_section, current_body_lines)
 
         self.is_indexed = False
         return count
@@ -302,9 +367,100 @@ class VectorSearchEngine:
                 "page_number": int(row["page_number"]),
                 "score": float(row["score"]),
                 "text": chunk.text,
+                "snippet": chunk.text,
+                "section_title": chunk.section_title,
                 "citation": f"Source: [{chunk.filename}], Page: [{chunk.page_number}]",
             })
         return output
+
+    def hybrid_search(
+        self,
+        query: str,
+        top_k: int = 5,
+        category_filter: Optional[str] = None,
+        rrf_k: float = 60.0,
+    ) -> List[Dict[str, Any]]:
+        """
+        Dense + Sparse Hybrid Search with Reciprocal Rank Fusion (RRF):
+        Fuses exact keyword matching (for invoice numbers, roll numbers, or IDs)
+        with semantic dense TF-IDF embeddings using standard RRF:
+        RRF_Score = 1 / (rrf_k + rank_sparse) + 1 / (rrf_k + rank_dense).
+        """
+        if not self.is_indexed:
+            self.build_index()
+
+        if self.tfidf_matrix is None or len(self.chunks) == 0:
+            return []
+
+        q_clean = query.strip()
+        if not q_clean:
+            return []
+
+        # 1. Sparse exact keyword & identifier matching
+        query_terms = set(self.tokenize(q_clean))
+        raw_terms = set(re.findall(r"\b[A-Za-z0-9_-]+\b", q_clean.lower()))
+        sparse_scores = np.zeros(len(self.chunks), dtype=np.float32)
+
+        for i, chunk in enumerate(self.chunks):
+            chunk_tokens = set(chunk.tokens)
+            overlap = len(query_terms.intersection(chunk_tokens))
+            raw_overlap = len(raw_terms.intersection(set(re.findall(r"\b[A-Za-z0-9_-]+\b", chunk.text.lower()))))
+            exact_bonus = 3.0 if q_clean.lower() in chunk.text.lower() else 0.0
+            sparse_scores[i] = overlap * 1.5 + raw_overlap + exact_bonus
+
+        # 2. Dense semantic cosine similarity
+        query_vec = self._vectorize_query(q_clean)
+        if query_vec.size > 0 and not np.all(query_vec == 0):
+            dense_scores = np.dot(self.tfidf_matrix, query_vec)
+        else:
+            dense_scores = np.zeros(len(self.chunks), dtype=np.float32)
+
+        # Apply category filter
+        if category_filter and category_filter != "All":
+            for i, chunk in enumerate(self.chunks):
+                if chunk.category != category_filter:
+                    sparse_scores[i] = -1e9
+                    dense_scores[i] = -1e9
+
+        # 3. Compute Ranks for Reciprocal Rank Fusion
+        sparse_order = np.argsort(-sparse_scores)
+        sparse_ranks = np.empty_like(sparse_order)
+        sparse_ranks[sparse_order] = np.arange(1, len(self.chunks) + 1)
+
+        dense_order = np.argsort(-dense_scores)
+        dense_ranks = np.empty_like(dense_order)
+        dense_ranks[dense_order] = np.arange(1, len(self.chunks) + 1)
+
+        # 4. RRF Score = 1 / (rrf_k + rank_sparse) + 1 / (rrf_k + rank_dense)
+        rrf_scores = (1.0 / (rrf_k + sparse_ranks)) + (1.0 / (rrf_k + dense_ranks))
+
+        # Filter out chunks with zero match on both
+        valid_mask = (sparse_scores > 0) | (dense_scores > 0.01)
+        valid_indices = np.where(valid_mask)[0]
+        if len(valid_indices) == 0:
+            return []
+
+        sorted_valid = valid_indices[np.argsort(-rrf_scores[valid_indices])][:top_k]
+
+        results = []
+        for idx in sorted_valid:
+            chunk = self.chunks[idx]
+            results.append({
+                "chunk_id": chunk.chunk_id,
+                "doc_id": chunk.doc_id,
+                "filename": chunk.filename,
+                "category": chunk.category,
+                "page_number": chunk.page_number,
+                "score": float(rrf_scores[idx]),
+                "dense_score": float(dense_scores[idx]),
+                "sparse_score": float(sparse_scores[idx]),
+                "text": chunk.text,
+                "snippet": chunk.text,
+                "section_title": chunk.section_title,
+                "citation": f"Source: [{chunk.filename}], Page: [{chunk.page_number}], Section: [{chunk.section_title}]",
+                "retrieval_mode": "Hybrid RRF (Dense + Sparse)",
+            })
+        return results
 
     def generate_similarity_plot(
         self,

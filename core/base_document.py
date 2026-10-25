@@ -126,6 +126,8 @@ class BaseDocument(ABC):
             "sha256_hash": self.sha256_hash,
             "status": self.status,
             "created_at": self.created_at,
+            "raw_text": self.raw_text,
+            "pages": self.pages,
             "extracted_dates": self.extract_dates(),
             "currency_amounts": self.extract_currency_amounts(),
             "clauses": self.clauses,
@@ -335,6 +337,11 @@ class DocumentFactory:
                 xml_data = XMLDocumentParser.parse_file(str(path))
                 raw_text = xml_data["raw_text"]
                 pages = [{"page_number": 1, "text": raw_text}]
+            elif ext in [".png", ".jpg", ".jpeg", ".webp"]:
+                from core.ocr_engine import OCREngine
+                ocr_res = OCREngine.extract_text_from_image(str(path))
+                raw_text = ocr_res.get("text", "")
+                pages = ocr_res.get("pages", [{"page_number": 1, "text": raw_text}])
             else:
                 # Text file handling
                 try:

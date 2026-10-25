@@ -205,3 +205,69 @@ class VectorIndexError(DocuVaultError):
         context = dimension_info or {}
         msg = f"Vector search engine error: {reason}"
         super().__init__(msg, error_code="ERR_VECTOR_INDEX", context=context)
+
+
+class TierLimitExceededError(DocuVaultError):
+    """Raised when a user on Free Trial exceeds allowed usage quotas (e.g. max 5 documents, max 10 chats)."""
+
+    def __init__(
+        self,
+        resource_name: str,
+        current_count: int,
+        limit: int,
+        tier: str = "Free",
+        suggestion: str = "Upgrade to Pro Plan for unlimited document indexing and AI queries.",
+    ) -> None:
+        context = {
+            "resource": resource_name,
+            "current_count": current_count,
+            "limit": limit,
+            "tier": tier,
+            "suggestion": suggestion,
+        }
+        msg = (
+            f"Subscription Tier Limit Reached ({tier} Plan): {current_count}/{limit} {resource_name} utilized. "
+            f"{suggestion}"
+        )
+        super().__init__(msg, error_code="ERR_TIER_LIMIT_EXCEEDED", context=context)
+        self.resource_name = resource_name
+        self.current_count = current_count
+        self.limit = limit
+        self.tier = tier
+        self.suggestion = suggestion
+
+
+class FeatureLockedError(DocuVaultError):
+    """Raised when an attempt is made to access a Pro-exclusive feature from a Free plan."""
+
+    def __init__(
+        self,
+        feature_name: str,
+        required_tier: str = "Pro",
+        current_tier: str = "Free",
+    ) -> None:
+        suggestion = f"Upgrade to {required_tier} Plan to unlock {feature_name}."
+        context = {
+            "feature": feature_name,
+            "required_tier": required_tier,
+            "current_tier": current_tier,
+            "suggestion": suggestion,
+        }
+        msg = f"Feature '{feature_name}' is locked. Requires {required_tier} Plan (Current: {current_tier}). {suggestion}"
+        super().__init__(msg, error_code="ERR_FEATURE_LOCKED", context=context)
+        self.feature_name = feature_name
+        self.required_tier = required_tier
+        self.current_tier = current_tier
+        self.tier = current_tier
+        self.suggestion = suggestion
+
+
+class AuthenticationError(DocuVaultError):
+    """Raised when user credential validation, Keycloak OIDC, or token refresh fails."""
+
+    def __init__(self, reason: str, username_or_email: Optional[str] = None) -> None:
+        context = {"user": username_or_email} if username_or_email else {}
+        msg = f"Authentication failed: {reason}"
+        super().__init__(msg, error_code="ERR_AUTH_FAILED", context=context)
+        self.username_or_email = username_or_email
+
