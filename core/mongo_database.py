@@ -47,7 +47,9 @@ class MongoDatabase:
             self.db.documents.create_index("doc_id", unique=True)
             self.db.documents.create_index("sha256_hash")
             self.db.documents.create_index("category")
+            self.db.documents.create_index("owner_email")
             self.db.audit_logs.create_index("timestamp")
+            self.db.audit_logs.create_index("owner_email")
             self.db.versions.create_index([("doc_id", 1), ("version_number", -1)])
             self.db.deadlines.create_index("due_date")
 
@@ -74,13 +76,17 @@ class MongoDatabase:
     # DOCUMENT CRUD OPERATIONS
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-    def save_document(self, doc_dict: Dict[str, Any]) -> bool:
-        """Saves or updates a document record in MongoDB."""
+    def save_document(self, doc_dict: Dict[str, Any], user_email: Optional[str] = None) -> bool:
+        """Saves or updates a document record in MongoDB with user ownership scoping."""
         doc_id = doc_dict.get("doc_id")
         if not doc_id:
             return False
 
         record = dict(doc_dict)
+        owner = user_email or record.get("owner_email")
+        if owner:
+            record["owner_email"] = str(owner).strip().lower()
+
         record["updated_at"] = datetime.now().isoformat()
         if "created_at" not in record:
             record["created_at"] = datetime.now().isoformat()
@@ -92,7 +98,7 @@ class MongoDatabase:
                     {"$set": record},
                     upsert=True
                 )
-                self.log_audit("DB_SAVE", f"Document '{record.get('filename')}' saved to MongoDB", doc_id)
+                self.log_audit("DB_SAVE", f"Document '{record.get('filename')}' saved to MongoDB", doc_id, user_email=record.get("owner_email"))
                 return True
             except Exception as e:
                 print(f"[MongoDatabase] Save error: {e}")
@@ -101,30 +107,79 @@ class MongoDatabase:
         self._memory_backup[doc_id] = record
         return True
 
-    def insert_document(self, doc_dict: Dict[str, Any]) -> bool:
-        """Alias for save_document to support insert semantics."""
-        return self.save_document(doc_dict)
+    SIDDHARTH_ALIASES = [
+        "siddharth.workspace@gmail.com",
+        "musxsid@gmail.com",
+        "siddharth",
+        "sid",
+        "siddharth shakyawal",
+        "siddharth.shakyawal",
+        "user@docuvault.local",
+        "demo@docuvault.ai",
+    ]
 
-    def get_document(self, doc_id: str) -> Optional[Dict[str, Any]]:
-        """Retrieves a single document by doc_id."""
+    @classmethod
+    def _is_siddharth_alias(cls, email_or_name: Optional[str]) -> bool:
+        if not email_or_name:
+            return False
+        clean = str(email_or_name).strip().lower()
+        if clean in cls.SIDDHARTH_ALIASES:
+            return True
+        return any(a in clean for a in ["siddharth", "musxsid", "sid"])
+
+    @classmethod
+    def _match_owner_query(cls, user_email: Optional[str]) -> Optional[Any]:
+        if not user_email:
+            return None
+        clean = str(user_email).strip().lower()
+        if cls._is_siddharth_alias(clean):
+            return {"$in": cls.SIDDHARTH_ALIASES}
+        return clean
+
+    @classmethod
+    def _matches_owner(cls, doc_owner: Optional[str], user_email: Optional[str]) -> bool:
+        if not user_email:
+            return True
+        u_clean = str(user_email).strip().lower()
+        d_clean = (doc_owner or "").strip().lower()
+        if cls._is_siddharth_alias(u_clean):
+            return cls._is_siddharth_alias(d_clean) or d_clean in ("", "user@docuvault.local")
+        return d_clean == u_clean
+
+    def insert_document(self, doc_dict: Dict[str, Any], user_email: Optional[str] = None) -> bool:
+        """Alias for save_document to support insert semantics."""
+        return self.save_document(doc_dict, user_email=user_email)
+
+    def get_document(self, doc_id: str, user_email: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """Retrieves a single document by doc_id, optionally ensuring user ownership."""
         if self.is_connected:
             try:
-                doc = self.db.documents.find_one({"doc_id": doc_id}, {"_id": 0})
+                q: Dict[str, Any] = {"doc_id": doc_id}
+                if user_email:
+                    q["owner_email"] = self._match_owner_query(user_email)
+                doc = self.db.documents.find_one(q, {"_id": 0})
                 if doc:
                     return doc
             except Exception:
                 pass
-        return self._memory_backup.get(doc_id)
+        doc = self._memory_backup.get(doc_id)
+        if doc and user_email:
+            if not self._matches_owner(doc.get("owner_email"), user_email):
+                return None
+        return doc
 
     def list_documents(
         self,
         category: Optional[str] = None,
-        search_query: Optional[str] = None
+        search_query: Optional[str] = None,
+        user_email: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
-        """Lists documents from MongoDB, optionally filtered by category and search query."""
+        """Lists documents from MongoDB, optionally filtered by category, search query, and user_email."""
         if self.is_connected:
             try:
                 q: Dict[str, Any] = {}
+                if user_email:
+                    q["owner_email"] = self._match_owner_query(user_email)
                 if category and category != "All":
                     q["category"] = category
                 if search_query:
@@ -135,13 +190,14 @@ class MongoDatabase:
                         {"sha256_hash": regex},
                     ]
                 docs = list(self.db.documents.find(q, {"_id": 0}).sort("created_at", -1))
-                if docs:
-                    return docs
+                return docs
             except Exception as e:
                 print(f"[MongoDatabase] List error: {e}")
 
         # Fallback to in-memory backup
         res = list(self._memory_backup.values())
+        if user_email:
+            res = [d for d in res if self._matches_owner(d.get("owner_email"), user_email)]
         if category and category != "All":
             res = [d for d in res if d.get("category") == category]
         if search_query:
@@ -149,17 +205,21 @@ class MongoDatabase:
             res = [d for d in res if sq in d.get("filename", "").lower() or sq in d.get("category", "").lower()]
         return res
 
-    def delete_document(self, doc_id: str) -> bool:
+    def delete_document(self, doc_id: str, user_email: Optional[str] = None) -> bool:
         """Deletes a document from MongoDB collection."""
         if self.is_connected:
             try:
-                self.db.documents.delete_one({"doc_id": doc_id})
-                self.log_audit("DB_DELETE", f"Document doc_id={doc_id} deleted from MongoDB", doc_id)
+                del_q: Dict[str, Any] = {"doc_id": doc_id}
+                if user_email:
+                    del_q["owner_email"] = self._match_owner_query(user_email)
+                self.db.documents.delete_one(del_q)
+                self.log_audit("DB_DELETE", f"Document doc_id={doc_id} deleted from MongoDB", doc_id, user_email=user_email)
             except Exception as e:
                 print(f"[MongoDatabase] Delete error: {e}")
 
         if doc_id in self._memory_backup:
-            del self._memory_backup[doc_id]
+            if not user_email or self._matches_owner(self._memory_backup[doc_id].get("owner_email"), user_email):
+                del self._memory_backup[doc_id]
         return True
 
     def update_document_status(self, doc_id: str, status: str) -> bool:
@@ -180,13 +240,16 @@ class MongoDatabase:
             return True
         return False
 
-    def find_by_hash(self, sha256_hash: str) -> Optional[Dict[str, Any]]:
+    def find_by_hash(self, sha256_hash: str, user_email: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """Finds any document matching the specified SHA-256 cryptographic hash."""
         if not sha256_hash:
             return None
         if self.is_connected:
             try:
-                doc = self.db.documents.find_one({"sha256_hash": sha256_hash}, {"_id": 0})
+                q: Dict[str, Any] = {"sha256_hash": sha256_hash}
+                if user_email:
+                    q["owner_email"] = self._match_owner_query(user_email)
+                doc = self.db.documents.find_one(q, {"_id": 0})
                 if doc:
                     return doc
             except Exception:
@@ -194,14 +257,15 @@ class MongoDatabase:
 
         for d in self._memory_backup.values():
             if d.get("sha256_hash") == sha256_hash:
-                return d
+                if not user_email or self._matches_owner(d.get("owner_email"), user_email):
+                    return d
         return None
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     # AUDIT TRAIL LOGGING
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-    def log_audit(self, action: str, details: str, doc_id: Optional[str] = None, operator: str = "System") -> None:
+    def log_audit(self, action: str, details: str, doc_id: Optional[str] = None, operator: str = "System", user_email: Optional[str] = None) -> None:
         """Logs an immutable event into MongoDB audit_logs collection."""
         entry = {
             "timestamp": datetime.now().isoformat(),
@@ -209,6 +273,7 @@ class MongoDatabase:
             "details": details,
             "doc_id": doc_id,
             "operator": operator,
+            "owner_email": user_email.strip().lower() if user_email else None,
         }
         if self.is_connected:
             try:
@@ -218,14 +283,20 @@ class MongoDatabase:
                 pass
         self._audit_backup.append(entry)
 
-    def get_audit_logs(self, limit: int = 100) -> List[Dict[str, Any]]:
-        """Retrieves recent audit logs ordered by timestamp descending."""
+    def get_audit_logs(self, limit: int = 100, user_email: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Retrieves recent audit logs ordered by timestamp descending, optionally filtered by user."""
         if self.is_connected:
             try:
-                return list(self.db.audit_logs.find({}, {"_id": 0}).sort("timestamp", -1).limit(limit))
+                q: Dict[str, Any] = {}
+                if user_email:
+                    q["owner_email"] = self._match_owner_query(user_email)
+                return list(self.db.audit_logs.find(q, {"_id": 0}).sort("timestamp", -1).limit(limit))
             except Exception:
                 pass
-        return list(reversed(self._audit_backup[-limit:]))
+        logs = self._audit_backup
+        if user_email:
+            logs = [e for e in logs if e.get("owner_email", "").strip().lower() == user_email.strip().lower()]
+        return list(reversed(logs[-limit:]))
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     # DOCUMENT VERSION HISTORY
@@ -264,10 +335,12 @@ class MongoDatabase:
     # SMART DEADLINES
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-    def save_deadline(self, deadline: Dict[str, Any]) -> None:
+    def save_deadline(self, deadline: Dict[str, Any], user_email: Optional[str] = None) -> None:
         """Saves or updates a deadline."""
         d_id = deadline.get("id") or str(len(self._deadlines_backup) + 1)
         deadline["id"] = d_id
+        if user_email:
+            deadline["owner_email"] = user_email.strip().lower()
         if self.is_connected:
             try:
                 self.db.deadlines.update_one({"id": d_id}, {"$set": deadline}, upsert=True)
@@ -282,16 +355,22 @@ class MongoDatabase:
         else:
             self._deadlines_backup.append(deadline)
 
-    def list_deadlines(self) -> List[Dict[str, Any]]:
+    def list_deadlines(self, user_email: Optional[str] = None) -> List[Dict[str, Any]]:
         """Lists all document deadlines."""
         if self.is_connected:
             try:
-                items = list(self.db.deadlines.find({}, {"_id": 0}).sort("due_date", 1))
+                q: Dict[str, Any] = {}
+                if user_email:
+                    q["$or"] = [{"owner_email": user_email.strip().lower()}, {"owner_email": {"$exists": False}}]
+                items = list(self.db.deadlines.find(q, {"_id": 0}).sort("due_date", 1))
                 return items
             except Exception:
                 pass
 
-        return list(self._deadlines_backup)
+        items = self._deadlines_backup
+        if user_email:
+            items = [d for d in items if not d.get("owner_email") or d.get("owner_email") == user_email.strip().lower()]
+        return list(items)
 
     def purge_all_data(self) -> None:
         """Purges all documents, audit logs, versions, and deadlines for a fresh vault state."""

@@ -1,0 +1,34 @@
+# Environment & Secrets (Safeguarded)
+.env
+*.env
+.env.*
+config/api_keys.json
+config/session.enc
+
+# Security & Local Database
+vault/keys/
+vault/users.db
+
+# Python & Build Artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs & Temp Files
+*.log
+file_ops.log
+scratch/
+tmp/
+.tempmediaStorage/
+
+# Editor & OS Files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

@@ -129,6 +129,35 @@ class PublicHolidayClient:
         }
 
 
+def load_env_file(env_path: Optional[Path] = None) -> None:
+    """Reads .env key=value pairs into os.environ if not already present."""
+    candidate_paths = [
+        env_path,
+        Path(".env"),
+        Path(__file__).resolve().parent.parent / ".env",
+    ]
+    for p in candidate_paths:
+        if p and p.exists():
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line or line.startswith("#"):
+                            continue
+                        if "=" in line:
+                            key, val = line.split("=", 1)
+                            key = key.strip()
+                            val = val.strip().strip("'\"")
+                            if key and key not in os.environ:
+                                os.environ[key] = val
+            except Exception:
+                pass
+            break
+
+
+load_env_file()
+
+
 class LLMClient:
     """
     Multi-provider LLM API client (Google Gemini, Groq, OpenAI, Local Ollama)
@@ -139,13 +168,15 @@ class LLMClient:
     CONFIG_FILE = Path("config/api_keys.json")
 
     def __init__(self) -> None:
+        load_env_file()
         self.CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
         keys = self.load_api_keys()
         self.gemini_api_key: str = keys.get("gemini_api_key") or os.getenv("GEMINI_API_KEY", "")
         self.groq_api_key: str = keys.get("groq_api_key") or os.getenv("GROQ_API_KEY", "")
         self.openai_api_key: str = keys.get("openai_api_key") or os.getenv("OPENAI_API_KEY", "")
         self.ollama_url: str = keys.get("ollama_url") or os.getenv("OLLAMA_URL", "http://localhost:11434")
-        self.preferred_provider: str = keys.get("preferred_provider", "auto")
+        self.preferred_provider: str = keys.get("preferred_provider") or os.getenv("PREFERRED_PROVIDER", "groq" if self.groq_api_key else "auto")
+        self.groq_model: str = keys.get("groq_model") or os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 
     def load_api_keys(self) -> Dict[str, str]:
         """Loads saved API keys from persistent configuration file."""
@@ -181,6 +212,7 @@ class LLMClient:
             self.ollama_url = current["ollama_url"]
         if "preferred_provider" in current:
             self.preferred_provider = current["preferred_provider"]
+            os.environ["PREFERRED_PROVIDER"] = self.preferred_provider
 
     def set_api_key(self, provider: str, key: str) -> None:
         """Sets and persists a single API key."""
@@ -239,16 +271,23 @@ class LLMClient:
                     "Authorization": f"Bearer {k}",
                     "Content-Type": "application/json",
                 }
-                body = {
-                    "model": "llama-3.1-8b-instant",
-                    "messages": [{"role": "user", "content": "ping"}],
-                    "max_tokens": 5,
-                }
-                r = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=body, timeout=8.0)
-                if r.status_code == 200:
-                    return True, "Connected successfully to Groq Cloud (llama-3.1-8b-instant)."
-                err_msg = r.json().get("error", {}).get("message", f"HTTP {r.status_code}")
-                return False, f"Groq Error: {err_msg}"
+                candidate_models = [self.groq_model, "openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b", "llama-3.1-8b-instant"]
+                seen = set()
+                models = [m for m in candidate_models if m and not (m in seen or seen.add(m))]
+                last_err = "No response"
+                for model in models:
+                    body = {
+                        "model": model,
+                        "messages": [{"role": "user", "content": "ping"}],
+                        "max_tokens": 10,
+                    }
+                    r = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=body, timeout=8.0)
+                    if r.status_code == 200:
+                        self.groq_model = model
+                        return True, f"Connected successfully to Groq Cloud ({model})."
+                    else:
+                        last_err = r.json().get("error", {}).get("message", f"HTTP {r.status_code}")
+                return False, f"Groq Error: {last_err}"
             except Exception as e:
                 return False, f"Groq connection failed: {e}"
 
@@ -369,58 +408,67 @@ class LLMClient:
 
         context_text = "\n\n".join(context_parts)
 
-        # 1. Try Google Gemini if key is present
-        if self.gemini_api_key:
-            try:
-                resp = self._call_gemini(query, context_text)
-                if resp:
-                    return {
-                        "answer": resp,
-                        "provider": "Google Gemini 1.5 Flash (Cloud)",
-                        "citations": citations,
-                    }
-            except Exception:
-                pass
+        # Build list of providers in priority order based on preferred_provider
+        preferred = (self.preferred_provider or "").lower().strip()
+        provider_order: List[str] = []
+        if preferred and preferred != "auto":
+            provider_order.append(preferred)
 
-        # 2. Try Groq API if key is present
-        if self.groq_api_key:
-            try:
-                resp = self._call_groq(query, context_text)
-                if resp:
-                    return {
-                        "answer": resp,
-                        "provider": "Groq Llama-3.1 (Cloud)",
-                        "citations": citations,
-                    }
-            except Exception:
-                pass
+        # Default fallback candidates (groq prioritized first when available)
+        for candidate in ["groq", "gemini", "openai", "ollama"]:
+            if candidate not in provider_order:
+                provider_order.append(candidate)
 
-        # 3. Try OpenAI API if key is present
-        if self.openai_api_key:
-            try:
-                resp = self._call_openai(query, context_text)
-                if resp:
-                    return {
-                        "answer": resp,
-                        "provider": "OpenAI GPT-4o-mini (Cloud)",
-                        "citations": citations,
-                    }
-            except Exception:
-                pass
+        for prov in provider_order:
+            if prov == "groq" and self.groq_api_key:
+                try:
+                    resp = self._call_groq(query, context_text)
+                    if resp:
+                        return {
+                            "answer": resp,
+                            "provider": f"Groq Cloud AI ({self.groq_model})",
+                            "citations": citations,
+                        }
+                except Exception as e:
+                    print(f"[LLMClient] Groq call failed: {e}")
 
-        # 4. Try Local Ollama instance
-        try:
-            resp = self._call_ollama(query, context_text)
-            if resp:
-                return {
-                    "answer": resp,
-                    "provider": "Ollama Local LLM",
-                    "citations": citations,
-                }
-        except Exception:
-            pass
+            elif prov == "gemini" and self.gemini_api_key:
+                try:
+                    resp = self._call_gemini(query, context_text)
+                    if resp:
+                        return {
+                            "answer": resp,
+                            "provider": "Google Gemini 1.5 Flash (Cloud)",
+                            "citations": citations,
+                        }
+                except Exception as e:
+                    print(f"[LLMClient] Gemini call failed: {e}")
 
-        # 5. Built-in Offline Local Extractive Engine (Zero external network needed)
+            elif prov == "openai" and self.openai_api_key:
+                try:
+                    resp = self._call_openai(query, context_text)
+                    if resp:
+                        return {
+                            "answer": resp,
+                            "provider": "OpenAI GPT-4o-mini (Cloud)",
+                            "citations": citations,
+                        }
+                except Exception as e:
+                    print(f"[LLMClient] OpenAI call failed: {e}")
+
+            elif prov == "ollama":
+                try:
+                    resp = self._call_ollama(query, context_text)
+                    if resp:
+                        return {
+                            "answer": resp,
+                            "provider": "Ollama Local LLM",
+                            "citations": citations,
+                        }
+                except Exception:
+                    pass
+
+        # Built-in Offline Local Extractive Engine (Zero external network needed)
         answer = self._generate_extractive_summary(query, retrieved_chunks)
         return {
             "answer": answer,
@@ -431,14 +479,19 @@ class LLMClient:
     def _call_gemini(self, query: str, context: str) -> Optional[str]:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={self.gemini_api_key}"
         prompt = (
-            "You are DocuVault AI, an enterprise document intelligence chatbot. "
+            "You are DocuVault AI, an enterprise document intelligence and neural search engine.\n"
             "Answer the user's question accurately based strictly on the provided vault document and image excerpts.\n\n"
-            "Formatting Guidelines:\n"
-            "- Start with a clean Markdown heading (e.g. '### 📋 Executive Summary').\n"
-            "- Use bullet points ('• **Term/Detail**: explanation') to highlight specific figures, deadlines, obligations, or facts.\n"
-            "- Use blockquotes (> 'verbatim excerpt') for direct clauses.\n"
-            "- Always cite the source document name and page number.\n"
-            "- Keep the formatting clean, professional, and readable.\n\n"
+            "CRITICAL RULES:\n"
+            "1. ONLY answer what is asked. If the user asks about a specific entity, company, or document (e.g. CodeArrest), do NOT include, mention, or cite any other companies or documents.\n"
+            "2. Structure your response EXACTLY like a search engine featured snippet:\n"
+            "### 🎯 Direct Answer\n"
+            "[Direct, concise, factual answer addressing only what was asked]\n\n"
+            "---\n"
+            "#### 📌 Source & Document Position\n"
+            "• **Document**: `[Filename]`\n"
+            "• **Position**: Page [X] · [Section/Paragraph Y]\n"
+            "• **Verified Excerpt**:\n"
+            "> ❝ [Exact verbatim text from the document at that position] ❞\n\n"
             f"Context Excerpts:\n{context}\n\n"
             f"Question:\n{query}\n\n"
             "Answer:"
@@ -459,26 +512,49 @@ class LLMClient:
             "Authorization": f"Bearer {self.groq_api_key}",
             "Content-Type": "application/json",
         }
-        body = {
-            "model": "llama-3.1-8b-instant",
-            "messages": [
-                {
-                    "role": "system",
-                    "content": (
-                        "You are DocuVault AI, a document intelligence chatbot. "
-                        "Answer questions accurately based on the provided context excerpts from documents and images. "
-                        "Format your answer cleanly with Markdown headings ('### Summary'), bullet points ('• **Key**: value'), "
-                        "and blockquotes (> 'quote') for verbatim clauses. Ground all statements in the cited sources."
-                    ),
-                },
-                {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {query}"},
-            ],
-            "temperature": 0.2,
-            "max_tokens": 700,
-        }
-        r = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=body, timeout=8.0)
-        if r.status_code == 200:
-            return r.json()["choices"][0]["message"]["content"]
+        candidate_models = [self.groq_model, "openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b", "llama-3.1-8b-instant"]
+        seen = set()
+        models = [m for m in candidate_models if m and not (m in seen or seen.add(m))]
+
+        for model in models:
+            body = {
+                "model": model,
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are DocuVault AI, an enterprise document search engine. "
+                            "Answer questions accurately based only on the provided context excerpts.\n"
+                            "CRITICAL: Answer ONLY what is asked. If asking for a specific entity or document (e.g. CodeArrest), do NOT mention any other companies.\n"
+                            "Structure your response strictly as:\n"
+                            "### 🎯 Direct Answer\n"
+                            "[Direct answer]\n\n"
+                            "---\n"
+                            "#### 📌 Source & Document Position\n"
+                            "• **Document**: `[Filename]`\n"
+                            "• **Position**: Page [X] · [Section/Paragraph Y]\n"
+                            "• **Verified Excerpt**:\n"
+                            "> ❝ [Verbatim quotation] ❞"
+                        ),
+                    },
+                    {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {query}"},
+                ],
+                "temperature": 0.2,
+                "max_tokens": 700,
+            }
+            try:
+                r = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=body, timeout=12.0)
+                if r.status_code == 200:
+                    self.groq_model = model
+                    return r.json()["choices"][0]["message"]["content"]
+                else:
+                    try:
+                        err_info = r.json()
+                    except Exception:
+                        err_info = r.text
+                    print(f"[LLMClient] Groq model {model} returned HTTP {r.status_code}: {err_info}")
+            except Exception as e:
+                print(f"[LLMClient] Groq model {model} failed: {e}")
         return None
 
     def _call_openai(self, query: str, context: str) -> Optional[str]:
@@ -492,10 +568,18 @@ class LLMClient:
                 {
                     "role": "system",
                     "content": (
-                        "You are DocuVault AI, an enterprise document intelligence chatbot. "
-                        "Answer questions accurately based only on the provided context excerpts from documents and images. "
-                        "Format your response with clean Markdown headings ('### Summary'), bullet points ('• **Field**: explanation'), "
-                        "and blockquotes (> 'excerpt') for verbatim source clauses. Ground every statement in the provided sources."
+                        "You are DocuVault AI, an enterprise document search engine. "
+                        "Answer questions accurately based strictly on the provided context excerpts.\n"
+                        "CRITICAL: Answer ONLY what is asked. If asking for a specific entity or document, do NOT mention any other companies.\n"
+                        "Structure your response strictly as:\n"
+                        "### 🎯 Direct Answer\n"
+                        "[Direct answer]\n\n"
+                        "---\n"
+                        "#### 📌 Source & Document Position\n"
+                        "• **Document**: `[Filename]`\n"
+                        "• **Position**: Page [X] · [Section/Paragraph Y]\n"
+                        "• **Verified Excerpt**:\n"
+                        "> ❝ [Verbatim quotation] ❞"
                     ),
                 },
                 {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {query}"},
@@ -510,7 +594,10 @@ class LLMClient:
 
     def _call_ollama(self, query: str, context: str) -> Optional[str]:
         url = f"{self.ollama_url}/api/generate"
-        prompt = f"Context:\n{context}\n\nQuestion:\n{query}\n\nProvide a concise cited answer with markdown headings and bullet points:"
+        prompt = (
+            f"Context:\n{context}\n\nQuestion:\n{query}\n\n"
+            "Structure as:\n### 🎯 Direct Answer\n[Answer]\n\n---\n#### 📌 Source & Document Position\n• **Document**: [Filename]\n• **Position**: Page [X]\n• **Verified Excerpt**:\n> ❝ [Quote] ❞"
+        )
         body = {"model": "llama3", "prompt": prompt, "stream": False}
         r = requests.post(url, json=body, timeout=3.0)
         if r.status_code == 200:
@@ -518,7 +605,7 @@ class LLMClient:
         return None
 
     def _generate_extractive_summary(self, query: str, retrieved_chunks: List[Dict[str, Any]]) -> str:
-        """Offline smart extractive summarizer selecting the most relevant sentences with citations."""
+        """Offline smart extractive summarizer selecting the most relevant sentences with search engine citations."""
         if not retrieved_chunks:
             return "No matching document or image excerpts found in the vault matching your query."
 
@@ -529,15 +616,17 @@ class LLMClient:
         text = top_chunk.get("snippet") or top_chunk.get("text", "")
 
         lines = [line.strip() for line in text.split("\n") if len(line.strip()) > 15 and not line.strip().startswith("---")]
-        summary_text = " ".join(lines[:3]) if lines else text[:250]
+        summary_text = " ".join(lines[:2]) if lines else text[:220]
 
         return (
-            f"### 📄 Document Intelligence: {source}\n\n"
-            f"Analysis of query **'{query}'** grounded in **{source}** (Page {page}, Section: {sec}).\n\n"
-            f"#### Extracted Evidence:\n"
-            f"• **Source File**: `{source}`\n"
-            f"• **Page & Section**: Page {page} · {sec}\n"
-            f"• **Vault Status**: Verified cryptographic hash\n\n"
+            "### 🎯 Direct Answer\n"
+            f"Based on verified records from **{source}** (Page {page}), here is the direct finding for **'{query}'**:\n"
+            f"• {summary_text}\n\n"
+            "---\n"
+            "#### 📌 Source & Document Position\n"
+            f"• **Document**: `{source}`\n"
+            f"• **Position**: Page {page} · {sec}\n"
+            "• **Verified Excerpt**:\n"
             f"> ❝ {summary_text} ❞"
         )
 

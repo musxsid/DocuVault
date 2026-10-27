@@ -30,6 +30,7 @@ class TextChunk:
         page_number: int,
         text: str,
         section_title: str = "General",
+        owner_email: Optional[str] = None,
     ) -> None:
         self.chunk_id = chunk_id
         self.doc_id = doc_id
@@ -38,6 +39,7 @@ class TextChunk:
         self.page_number = page_number
         self.text = text
         self.section_title = section_title
+        self.owner_email = owner_email
         self.tokens: List[str] = []
 
 
@@ -99,9 +101,11 @@ class VectorSearchEngine:
         category: str,
         pages: List[Dict[str, Any]],
         chunk_size: int = 400,
+        owner_email: Optional[str] = None,
     ) -> int:
         """
         Splits document pages into text chunks and registers them for indexing.
+        Enriches token index with document filename and category.
         Returns the number of chunks added.
         """
         count = 0
@@ -123,8 +127,8 @@ class VectorSearchEngine:
                 else:
                     if current_chunk.strip():
                         c_id = f"{doc_id}_p{page_num}_c{count}"
-                        chunk = TextChunk(c_id, doc_id, filename, category, page_num, current_chunk.strip())
-                        chunk.tokens = self.tokenize(current_chunk)
+                        chunk = TextChunk(c_id, doc_id, filename, category, page_num, current_chunk.strip(), owner_email=owner_email)
+                        chunk.tokens = self.tokenize(f"{filename} {category} {current_chunk}")
                         if chunk.tokens:
                             self.chunks.append(chunk)
                             count += 1
@@ -132,8 +136,8 @@ class VectorSearchEngine:
 
             if current_chunk.strip():
                 c_id = f"{doc_id}_p{page_num}_c{count}"
-                chunk = TextChunk(c_id, doc_id, filename, category, page_num, current_chunk.strip())
-                chunk.tokens = self.tokenize(current_chunk)
+                chunk = TextChunk(c_id, doc_id, filename, category, page_num, current_chunk.strip(), owner_email=owner_email)
+                chunk.tokens = self.tokenize(f"{filename} {category} {current_chunk}")
                 if chunk.tokens:
                     self.chunks.append(chunk)
                     count += 1
@@ -148,6 +152,7 @@ class VectorSearchEngine:
         category: str,
         pages: List[Dict[str, Any]],
         chunk_size: int = 500,
+        owner_email: Optional[str] = None,
     ) -> int:
         """
         Hierarchical Chunking:
@@ -176,9 +181,9 @@ class VectorSearchEngine:
                 if not t:
                     return
                 c_id = f"{doc_id}_p{page_num}_hc{count}"
-                enriched_text = f"[{sec_name}] {t}"
-                chunk = TextChunk(c_id, doc_id, filename, category, page_num, enriched_text, section_title=sec_name)
-                chunk.tokens = self.tokenize(enriched_text)
+                enriched_text = f"[{filename} | {sec_name}] {t}"
+                chunk = TextChunk(c_id, doc_id, filename, category, page_num, enriched_text, section_title=sec_name, owner_email=owner_email)
+                chunk.tokens = self.tokenize(f"{filename} {category} {enriched_text}")
                 if chunk.tokens:
                     self.chunks.append(chunk)
                     count += 1
@@ -303,11 +308,12 @@ class VectorSearchEngine:
         top_k: int = 5,
         category_filter: Optional[str] = None,
         min_score: float = 0.01,
+        owner_email: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """
         Executes sub-second semantic search:
         1. Computes cosine similarity via array dot-product: scores = np.dot(matrix, query_vec).
-        2. Applies boolean masking to filter by category.
+        2. Applies boolean masking to filter by category and owner_email profile.
         3. Packages top matches into structured NumPy arrays.
         """
         if not self.is_indexed:
@@ -324,12 +330,23 @@ class VectorSearchEngine:
         # Vectorized dot product cosine similarity across all document chunks
         scores = np.dot(self.tfidf_matrix, query_vec)  # Shape: (num_chunks,)
 
-        # Boolean Masking Filter (Category and threshold)
+        # Boolean Masking Filter (Category, threshold, and owner profile)
         mask = scores >= min_score
         if category_filter and category_filter != "All":
             category_arr = np.array([c.category for c in self.chunks])
             category_mask = (category_arr == category_filter)
             mask = mask & category_mask
+
+        if owner_email:
+            try:
+                from core.mongo_database import MongoDatabase
+                owner_mask = np.array([
+                    c.owner_email is None or MongoDatabase._matches_owner(c.owner_email, owner_email)
+                    for c in self.chunks
+                ], dtype=bool)
+                mask = mask & owner_mask
+            except Exception:
+                pass
 
         matching_indices = np.where(mask)[0]
         if len(matching_indices) == 0:
@@ -365,6 +382,7 @@ class VectorSearchEngine:
                 "filename": str(row["filename"]),
                 "category": str(row["category"]),
                 "page_number": int(row["page_number"]),
+                "owner_email": chunk.owner_email,
                 "score": float(row["score"]),
                 "text": chunk.text,
                 "snippet": chunk.text,
@@ -379,12 +397,14 @@ class VectorSearchEngine:
         top_k: int = 5,
         category_filter: Optional[str] = None,
         rrf_k: float = 60.0,
+        owner_email: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """
         Dense + Sparse Hybrid Search with Reciprocal Rank Fusion (RRF):
         Fuses exact keyword matching (for invoice numbers, roll numbers, or IDs)
         with semantic dense TF-IDF embeddings using standard RRF:
         RRF_Score = 1 / (rrf_k + rank_sparse) + 1 / (rrf_k + rank_dense).
+        Strictly partitions candidates to the active user's profile.
         """
         if not self.is_indexed:
             self.build_index()
@@ -422,6 +442,17 @@ class VectorSearchEngine:
                     sparse_scores[i] = -1e9
                     dense_scores[i] = -1e9
 
+        # Apply owner profile isolation filter
+        if owner_email:
+            try:
+                from core.mongo_database import MongoDatabase
+                for i, chunk in enumerate(self.chunks):
+                    if chunk.owner_email and not MongoDatabase._matches_owner(chunk.owner_email, owner_email):
+                        sparse_scores[i] = -1e9
+                        dense_scores[i] = -1e9
+            except Exception:
+                pass
+
         # 3. Compute Ranks for Reciprocal Rank Fusion
         sparse_order = np.argsort(-sparse_scores)
         sparse_ranks = np.empty_like(sparse_order)
@@ -451,6 +482,7 @@ class VectorSearchEngine:
                 "filename": chunk.filename,
                 "category": chunk.category,
                 "page_number": chunk.page_number,
+                "owner_email": chunk.owner_email,
                 "score": float(rrf_scores[idx]),
                 "dense_score": float(dense_scores[idx]),
                 "sparse_score": float(sparse_scores[idx]),

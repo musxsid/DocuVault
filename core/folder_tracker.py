@@ -33,9 +33,11 @@ class DirectoryTracker:
         self,
         on_document_discovered: Optional[Callable[[Dict[str, Any]], None]] = None,
         mongo: Optional[Any] = None,
+        owner_email: Optional[str] = None,
     ) -> None:
         self._ensure_config_dir()
         self.on_document_discovered = on_document_discovered
+        self.owner_email = owner_email.strip().lower() if owner_email else None
         self.audit_logger = AuditLogger("file_ops.log")
         self._watched_folders: List[str] = self._load_watched_folders()
         self._file_index: Dict[str, Dict[str, Any]] = self._load_file_index()
@@ -47,6 +49,11 @@ class DirectoryTracker:
             self.mongo = mongo or MongoDatabase()
         except Exception:
             self.mongo = None
+
+    def set_owner_email(self, email: Optional[str]) -> None:
+        """Sets or updates the active user email for tagging discovered documents."""
+        with self._lock:
+            self.owner_email = email.strip().lower() if email else None
 
     def _ensure_config_dir(self) -> None:
         self.CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -106,7 +113,7 @@ class DirectoryTracker:
                 return True
         return False
 
-    def process_file(self, filepath: str) -> Optional[Dict[str, Any]]:
+    def process_file(self, filepath: str, force: bool = False) -> Optional[Dict[str, Any]]:
         """
         Parses, validates, hashes, OCRs, and enriches a discovered document.
         """
@@ -125,8 +132,19 @@ class DirectoryTracker:
 
             # 2. Check if already indexed with matching hash and mtime
             indexed_entry = self._file_index.get(str(p))
-            if indexed_entry and indexed_entry.get("sha256") == sha256 and indexed_entry.get("mtime") == mtime:
-                return None  # Unchanged
+            if indexed_entry and indexed_entry.get("sha256") == sha256 and indexed_entry.get("mtime") == mtime and not force:
+                if self.mongo and self.owner_email:
+                    existing = self.mongo.find_by_hash(sha256, user_email=self.owner_email)
+                    if existing:
+                        return None  # Unchanged and already saved for this user
+                else:
+                    return None  # Unchanged
+
+            # If force is requested and document already exists in MongoDB for this user, reuse it
+            if force and self.mongo and self.owner_email:
+                existing = self.mongo.find_by_hash(sha256, user_email=self.owner_email)
+                if existing:
+                    return existing
 
             # 3. Text Extraction with OCR fallback for images/scans
             is_image = p.suffix.lower() in [".png", ".jpg", ".jpeg", ".webp"]
@@ -160,6 +178,8 @@ class DirectoryTracker:
             doc_dict["risk_profile"] = DocumentAnalyzer.calculate_risk_profile(full_text, doc_dict.get("clauses"))
             doc_dict["tracked_folder"] = str(p.parent)
             doc_dict["discovered_at"] = datetime.now().isoformat()
+            if self.owner_email:
+                doc_dict["owner_email"] = self.owner_email
             if "created_at" not in doc_dict:
                 doc_dict["created_at"] = datetime.now().isoformat()
             doc_dict["updated_at"] = datetime.now().isoformat()
@@ -167,7 +187,7 @@ class DirectoryTracker:
             # 5. Persist Document-Wise in MongoDB Real-Time Layer
             if self.mongo:
                 try:
-                    self.mongo.save_document(doc_dict)
+                    self.mongo.save_document(doc_dict, user_email=self.owner_email)
                 except Exception as me:
                     print(f"[DirectoryTracker] MongoDB auto-save notice: {me}")
 
@@ -204,7 +224,7 @@ class DirectoryTracker:
             print(f"[DirectoryTracker] Warning parsing file '{p.name}': {e}")
             return None
 
-    def scan_folder(self, folder_path: str) -> List[Dict[str, Any]]:
+    def scan_folder(self, folder_path: str, force: bool = False) -> List[Dict[str, Any]]:
         """Scans a single watched directory and processes any new or modified files."""
         abs_p = os.path.abspath(folder_path)
         if not os.path.isdir(abs_p):
@@ -217,7 +237,7 @@ class DirectoryTracker:
                     ext = Path(f).suffix.lower()
                     if ext in self.SUPPORTED_EXTENSIONS:
                         fpath = os.path.join(root, f)
-                        res = self.process_file(fpath)
+                        res = self.process_file(fpath, force=force)
                         if res:
                             discovered.append(res)
                             if self.on_document_discovered:
@@ -227,11 +247,11 @@ class DirectoryTracker:
 
         return discovered
 
-    def scan_all_watched(self) -> List[Dict[str, Any]]:
+    def scan_all_watched(self, force: bool = False) -> List[Dict[str, Any]]:
         """Scans all tracked directories for changes."""
         all_discovered = []
         for folder in self.get_watched_folders():
-            discovered = self.scan_folder(folder)
+            discovered = self.scan_folder(folder, force=force)
             all_discovered.extend(discovered)
         return all_discovered
 

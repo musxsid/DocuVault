@@ -133,6 +133,7 @@ LIGHT = {
     "purple_bg": "#F4F3FF",
     "gold": "#FFC46B",
     "orange": "#F26A1B",
+    "orange_bg": "#FFF1EB",
     "shadow": "rgba(0, 0, 0, 0.04)",
     "shadow_card": "0 2px 8px rgba(0,0,0,0.04)",
 }
@@ -183,6 +184,7 @@ DARK = {
     "purple_bg": "rgba(165, 139, 255, 0.14)",
     "gold": "#FFC46B",
     "orange": "#FF7A2E",
+    "orange_bg": "rgba(255, 122, 46, 0.14)",
     "shadow": "rgba(0, 0, 0, 0.60)",
     "shadow_card": "0 2px 10px rgba(0,0,0,0.50)",
 }
@@ -751,8 +753,10 @@ class DonutUsageWidget(QWidget):
         self.used_text = "960.9 KB"
         self.total_text = "of 5 GB used"
 
-    def set_data(self, used_str: str, slices: List[tuple]):
+    def set_data(self, used_str: str, slices: List[tuple], total_text: Optional[str] = None):
         self.used_text = used_str
+        if total_text:
+            self.total_text = total_text
         if slices:
             self.slices = slices
         self.update()
@@ -1596,17 +1600,20 @@ class DocumentInspector(QFrame):
         self._t = theme
         self.setObjectName("inspectorDrawer")
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
-        self.setMinimumWidth(320)
-        self.setMaximumWidth(950)
-        self.resize(380, self.height())
+        self.setMinimumWidth(280)
+        self.setMaximumWidth(1200)
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
         self._current_hash = ""
         self._current_doc: Optional[Dict[str, Any]] = None
         self._build()
 
+    def minimumSizeHint(self) -> QSize:
+        return QSize(280, 200)
+
     def _build(self):
         t = self._t
         lay = QVBoxLayout(self)
-        lay.setContentsMargins(18, 16, 18, 16)
+        lay.setContentsMargins(16, 14, 16, 14)
         lay.setSpacing(10)
 
         # ── 1. Header Tag Row with Status & Close Button ──
@@ -1645,10 +1652,13 @@ class DocumentInspector(QFrame):
         self.title_lbl = QLabel("Select a document")
         self.title_lbl.setStyleSheet(f"font-size: 15px; font-weight: 800; color: {t['text']}; letter-spacing: -0.3px;")
         self.title_lbl.setWordWrap(True)
+        self.title_lbl.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         lay.addWidget(self.title_lbl)
 
         self.meta_sub_lbl = QLabel("No document selected")
         self.meta_sub_lbl.setStyleSheet(f"font-size: 11px; color: {t['text4']};")
+        self.meta_sub_lbl.setWordWrap(True)
+        self.meta_sub_lbl.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         lay.addWidget(self.meta_sub_lbl)
 
         # ── 3. Primary Action Strip (Immediate Prominent Access) ──
@@ -1710,7 +1720,7 @@ class DocumentInspector(QFrame):
         self.btn_tab_legal.clicked.connect(lambda: self._switch_tab(1))
 
         self.btn_tab_tools = QPushButton("Tools & Sec")
-        self.btn_tab_tools.setFixedHeight(26)
+        self.btn_tab_tools.setFixedHeight(26)  
         self.btn_tab_tools.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.btn_tab_tools.clicked.connect(lambda: self._switch_tab(2))
 
@@ -1724,6 +1734,7 @@ class DocumentInspector(QFrame):
         self.drawer_scroll.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.drawer_scroll.viewport().setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.drawer_scroll.setWidgetResizable(True)
+        self.drawer_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.drawer_scroll.setStyleSheet("QScrollArea, QScrollArea > QWidget > QWidget { background: transparent; border: none; }")
         self.drawer_scroll.viewport().setStyleSheet("background: transparent; border: none;")
 
@@ -1814,6 +1825,7 @@ class DocumentInspector(QFrame):
 
         self.lbl_counterparties = QLabel("No counterparty identified")
         self.lbl_counterparties.setWordWrap(True)
+        self.lbl_counterparties.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         is_dark = t.get("name") == "dark"
         cp_bg = "#141418" if is_dark else t["bg3"]
         cp_color = t["text"] if is_dark else t["text2"]
@@ -1835,6 +1847,7 @@ class DocumentInspector(QFrame):
         self.lbl_hash = QLabel("No document selected")
         self.lbl_hash.setStyleSheet(f"font-family: monospace; font-size: 9px; color: {t['primary']};")
         self.lbl_hash.setWordWrap(True)
+        self.lbl_hash.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         slay.addWidget(self.lbl_hash, 1)
 
         self.btn_copy = QPushButton("Copy")
@@ -2067,7 +2080,10 @@ class DocumentInspector(QFrame):
 
         sha = doc.get("sha256_hash", "N/A")
         self._current_hash = sha
-        self.lbl_hash.setText(sha)
+        if sha and sha != "N/A" and len(sha) == 64:
+            self.lbl_hash.setText(f"{sha[:32]}\n{sha[32:]}")
+        else:
+            self.lbl_hash.setText(sha)
         self.btn_copy.setEnabled(bool(sha and sha != "N/A"))
 
         # Insights & extracted clauses
@@ -2497,7 +2513,7 @@ class StorageVaultPage(QWidget):
         top_row.addLayout(right_box, 1)
         lay.addLayout(top_row)
 
-        # ── Bottom Card: Recent Sync Activity ──
+        # ── Bottom Card: Recent Sync Activity (Live Realtime Data) ──
         self.sync_card = QFrame()
         self.sync_card.setObjectName("unifiedCard")
         sc_lay = QVBoxLayout(self.sync_card)
@@ -2508,51 +2524,35 @@ class StorageVaultPage(QWidget):
         self.sc_title.setStyleSheet(f"font-size: 13px; font-weight: 700; color: {t['text']};")
         sc_lay.addWidget(self.sc_title)
 
-        sync_items = [
-            ("NDA_Apex_Quantum_2026.pdf", "Mirrored to cloud folder \u2022 2 min ago"),
-            ("Vendor_Invoice_INV-9042.xml", "Encrypted and indexed \u2022 14 min ago"),
-            ("CodeArrest_offer_letter.pdf", "Hash checked on import \u2022 1 h ago"),
-        ]
+        self.sc_items_container = QWidget()
+        self.sc_items_lay = QVBoxLayout(self.sc_items_container)
+        self.sc_items_lay.setContentsMargins(0, 0, 0, 0)
+        self.sc_items_lay.setSpacing(10)
+        sc_lay.addWidget(self.sc_items_container)
+
         self.sync_labels = []
-        for fname, desc in sync_items:
-            row = QHBoxLayout()
-            icon_lbl = QLabel("🔄")
-            icon_lbl.setStyleSheet(f"color: {t['primary']}; font-size: 12px;")
-            row.addWidget(icon_lbl)
-
-            col = QVBoxLayout()
-            col.setSpacing(2)
-            fn_lbl = QLabel(fname)
-            fn_lbl.setStyleSheet(f"font-size: 12px; font-weight: 600; color: {t['text']};")
-            col.addWidget(fn_lbl)
-            ds_lbl = QLabel(desc)
-            ds_lbl.setStyleSheet(f"font-size: 11px; color: {t['text3']};")
-            col.addWidget(ds_lbl)
-            row.addLayout(col, 1)
-
-            badge = QLabel("Synced")
-            badge.setStyleSheet(f"color: {t['green']}; background: {t['green_bg']}; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px;")
-            row.addWidget(badge)
-            sc_lay.addLayout(row)
-            self.sync_labels.append((fn_lbl, ds_lbl, badge))
-
         lay.addWidget(self.sync_card)
         lay.addStretch()
 
-    def refresh_storage_metrics(self, docs: Dict[str, Dict[str, Any]]):
+    def refresh_storage_metrics(self, docs: Dict[str, Dict[str, Any]], user_tier: str = "Free"):
+        t = self._t
         cat_sizes: Dict[str, int] = {"Legal": 0, "Financial": 0, "Academic": 0, "Medical": 0, "General": 0}
+        cat_counts: Dict[str, int] = {"Legal": 0, "Financial": 0, "Academic": 0, "Medical": 0, "General": 0}
         total_b = 0
+
         for d in docs.values():
             cat = d.get("category", "General")
+            if cat not in cat_sizes:
+                cat = "General"
             sz = d.get("size_bytes") or len(d.get("raw_text", "")) or 1024
-            if cat in cat_sizes:
-                cat_sizes[cat] += sz
-            else:
-                cat_sizes["General"] += sz
+            cat_sizes[cat] += sz
+            cat_counts[cat] += 1
             total_b += sz
 
         def fmt_sz(b):
-            if b >= 1048576:
+            if b >= 1073741824:
+                return f"{b/1073741824:.2f} GB"
+            elif b >= 1048576:
                 return f"{b/1048576:.1f} MB"
             elif b >= 1024:
                 return f"{b/1024:.1f} KB"
@@ -2561,15 +2561,93 @@ class StorageVaultPage(QWidget):
         if hasattr(self, "cat_labels"):
             for nl, sl in self.cat_labels:
                 name = nl.text()
-                sl.setText(fmt_sz(cat_sizes.get(name, 0)))
+                cnt = cat_counts.get(name, 0)
+                sz_str = fmt_sz(cat_sizes.get(name, 0))
+                sl.setText(f"{sz_str} ({cnt} file{'s' if cnt != 1 else ''})")
+
+        is_pro = str(user_tier).capitalize() == "Pro"
+        max_bytes = (10 * 1024 * 1024 * 1024) if is_pro else (50 * 1024 * 1024)
+        max_str = "10 GB" if is_pro else "50 MB"
+        pct = (total_b / max_bytes * 100.0) if max_bytes > 0 else 0.0
 
         used_str = fmt_sz(total_b)
         if hasattr(self, "lbl_local_used"):
-            self.lbl_local_used.setText(f"{used_str} of 5 GB used")
+            self.lbl_local_used.setText(f"{used_str} of {max_str} used ({pct:.1f}%)")
         if hasattr(self, "donut"):
             colors = {"Legal": "#6B9BFF", "Financial": "#32D583", "Academic": "#A58BFF", "Medical": "#F0556E", "General": "#FF7A2E"}
             slices = [(cat, sz if total_b > 0 else 1, colors[cat]) for cat, sz in cat_sizes.items()]
-            self.donut.set_data(used_str if total_b > 0 else "0 B", slices)
+            self.donut.set_data(used_str if total_b > 0 else "0 B", slices, f"of {max_str} used")
+
+        # Update cloud mirror card based on user tier
+        if hasattr(self, "cc_badge") and hasattr(self, "lbl_cloud_status"):
+            if is_pro:
+                self.cc_badge.setText("● Live Sync Active")
+                self.cc_badge.setStyleSheet(f"color: {t['green']}; background: {t['green_bg']}; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px;")
+                self.lbl_cloud_status.setText(f"Real-time file watching active • {len(docs)} files mirrored")
+            else:
+                self.cc_badge.setText("Pro Plan Gated")
+                self.cc_badge.setStyleSheet(f"color: {t['orange']}; background: {t['orange_bg']}; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px;")
+                self.lbl_cloud_status.setText("Cloud mirror disabled on Free Trial. Upgrade to Pro for multi-device sync.")
+
+        # Re-populate dynamic recent sync activity from actual user files
+        if hasattr(self, "sc_items_lay"):
+            while self.sc_items_lay.count():
+                child = self.sc_items_lay.takeAt(0)
+                if child.widget():
+                    child.widget().deleteLater()
+
+            doc_list = sorted(
+                docs.values(),
+                key=lambda x: x.get("updated_at") or x.get("created_at") or "",
+                reverse=True
+            )
+
+            if not doc_list:
+                empty_lbl = QLabel("No files uploaded to vault yet. Drag & drop files or track a directory to begin live sync.")
+                empty_lbl.setStyleSheet(f"font-size: 12px; color: {t['text3']}; padding: 12px 0;")
+                self.sc_items_lay.addWidget(empty_lbl)
+            else:
+                for doc in doc_list[:5]:
+                    row = QWidget()
+                    rlay = QHBoxLayout(row)
+                    rlay.setContentsMargins(0, 2, 0, 2)
+                    rlay.setSpacing(10)
+
+                    icon_lbl = QLabel("📄")
+                    ext = Path(doc.get("filename", "")).suffix.lower()
+                    if ext in [".png", ".jpg", ".jpeg", ".webp"]:
+                        icon_lbl.setText("🖼️")
+                    elif ext == ".pdf":
+                        icon_lbl.setText("📕")
+                    elif ext == ".xml":
+                        icon_lbl.setText("🏷️")
+                    rlay.addWidget(icon_lbl)
+
+                    col = QVBoxLayout()
+                    col.setSpacing(2)
+                    fn_lbl = QLabel(doc.get("filename", "Untitled"))
+                    fn_lbl.setStyleSheet(f"font-size: 12px; font-weight: 600; color: {t['text']};")
+                    col.addWidget(fn_lbl)
+
+                    d_sz = fmt_sz(doc.get("size_bytes", 0))
+                    d_cat = doc.get("category", "General")
+                    ds_lbl = QLabel(f"{d_cat} • {d_sz} • Stored locally in vault/local")
+                    ds_lbl.setStyleSheet(f"font-size: 11px; color: {t['text3']};")
+                    col.addWidget(ds_lbl)
+                    rlay.addLayout(col, 1)
+
+                    st = doc.get("status", "Verified")
+                    badge = QLabel(f"● {st}")
+                    is_ok = st == "Verified"
+                    badge.setStyleSheet(f"color: {t['green'] if is_ok else t['red']}; background: {t['green_bg'] if is_ok else t['red_bg']}; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px;")
+                    rlay.addWidget(badge)
+
+                    self.sc_items_lay.addWidget(row)
+
+    def _open_dir(self, rel_path: str):
+        full_path = os.path.abspath(rel_path)
+        os.makedirs(full_path, exist_ok=True)
+        QDesktopServices.openUrl(QUrl.fromLocalFile(full_path))
 
     def update_theme(self, theme: Dict[str, str]):
         self._t = theme
@@ -3207,6 +3285,12 @@ def format_chat_markdown_to_html(text: str, is_dark: bool, primary_color: str = 
 
         if not stripped:
             html_lines.append('<div style="height: 8px;"></div>')
+            continue
+
+        # Horizontal divider
+        if stripped in ("---", "***", "___"):
+            hr_color = "rgba(255, 255, 255, 0.12)" if is_dark else "rgba(0, 0, 0, 0.10)"
+            html_lines.append(f'<hr style="height: 1px; border: none; background-color: {hr_color}; color: {hr_color}; margin: 12px 0;">')
             continue
 
         # Headings
@@ -3912,22 +3996,13 @@ class AIAssistantPage(QWidget):
                 t_lay.addStretch(1)
 
                 u_bubble = QFrame()
-                u_bg = "#1A1A22" if is_dark else "#F1F5F9"
-                u_border = "#2A2A38" if is_dark else "#E2E8F0"
                 u_text_color = "#FFFFFF" if is_dark else "#0F172A"
                 u_bubble.setMinimumWidth(120)
-                u_bubble.setMaximumWidth(640)
+                u_bubble.setMaximumWidth(840)
                 u_bubble.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
-                u_bubble.setStyleSheet(f"""
-                    QFrame {{
-                        background: {u_bg};
-                        border: 1px solid {u_border};
-                        border-radius: 16px;
-                        border-bottom-right-radius: 4px;
-                    }}
-                """)
+                u_bubble.setStyleSheet("background: transparent; border: none;")
                 ub_lay = QVBoxLayout(u_bubble)
-                ub_lay.setContentsMargins(16, 10, 16, 12)
+                ub_lay.setContentsMargins(8, 8, 8, 8)
                 ub_lay.setSpacing(4)
 
                 u_top = QHBoxLayout()
@@ -3952,6 +4027,11 @@ class AIAssistantPage(QWidget):
                 u_msg.setStyleSheet(f"font-size: 13.5px; font-weight: 500; color: {u_text_color}; line-height: 1.5; background: transparent; border: none;")
                 ub_lay.addWidget(u_msg)
 
+                u_sep = QFrame()
+                u_sep.setFixedHeight(1)
+                u_sep.setStyleSheet(f"background: {'rgba(255, 255, 255, 0.06)' if is_dark else 'rgba(0, 0, 0, 0.06)'}; border: none; margin-top: 8px;")
+                ub_lay.addWidget(u_sep)
+
                 t_lay.addWidget(u_bubble, 0)
                 self.msg_lay.addWidget(turn_widget)
 
@@ -3959,23 +4039,14 @@ class AIAssistantPage(QWidget):
                 turn_widget = QWidget()
                 turn_widget.setStyleSheet("background: transparent; border: none;")
                 t_lay = QVBoxLayout(turn_widget)
-                t_lay.setContentsMargins(12, 6, 12, 6)
+                t_lay.setContentsMargins(8, 4, 8, 8)
 
                 a_card = QFrame()
-                a_bg = "#111116" if is_dark else "#FFFFFF"
-                a_border = "#20202A" if is_dark else "#E5E7EB"
-                a_card.setStyleSheet(f"""
-                    QFrame#assistantBubble {{
-                        background: {a_bg};
-                        border: 1px solid {a_border};
-                        border-radius: 14px;
-                        border-top-left-radius: 4px;
-                    }}
-                """)
+                a_card.setStyleSheet("background: transparent; border: none;")
                 a_card.setObjectName("assistantBubble")
                 ac_lay = QVBoxLayout(a_card)
-                ac_lay.setContentsMargins(20, 16, 20, 16)
-                ac_lay.setSpacing(14)
+                ac_lay.setContentsMargins(8, 8, 8, 12)
+                ac_lay.setSpacing(12)
 
                 # Header Row
                 a_top = QHBoxLayout()
@@ -4216,9 +4287,13 @@ class AIAssistantPage(QWidget):
                         break
                 if prev_query:
                     btn_regen.clicked.connect(lambda _, q=prev_query: self._execute_query(q, is_regenerate=True))
-                act_row.addWidget(btn_regen)
-
                 ac_lay.addLayout(act_row)
+
+                turn_sep = QFrame()
+                turn_sep.setFixedHeight(1)
+                turn_sep.setStyleSheet(f"background: {'rgba(255, 255, 255, 0.08)' if is_dark else 'rgba(0, 0, 0, 0.08)'}; border: none; margin-top: 14px;")
+                ac_lay.addWidget(turn_sep)
+
                 t_lay.addWidget(a_card)
                 self.msg_lay.addWidget(turn_widget)
 
@@ -4284,7 +4359,8 @@ class AIAssistantPage(QWidget):
             try:
                 res = self.assistant.answer_query(
                     query_text,
-                    target_filenames=self.pinned_sources if self.pinned_sources else None
+                    target_filenames=self.pinned_sources if self.pinned_sources else None,
+                    user_email=self.current_user.get("email"),
                 )
                 if res:
                     answer_text = res.get("answer_text") or res.get("answer") or "No clause found."
@@ -4316,9 +4392,13 @@ class AIAssistantPage(QWidget):
 
     def set_assistant(self, assistant: ExplainableAIAssistant):
         self.assistant = assistant
+        if hasattr(self, "current_user") and self.current_user:
+            self.assistant.set_owner_email(self.current_user.get("email"))
 
     def set_user_info(self, user_dict: Dict[str, Any]):
         self.current_user = user_dict
+        if self.assistant:
+            self.assistant.set_owner_email(user_dict.get("email"))
         name = user_dict.get("full_name") or user_dict.get("email") or "Vault User"
         self.profile_name.setText(name)
         initial = name[0].upper() if name else "V"
@@ -5003,9 +5083,10 @@ class AIDrawer(QFrame):
     """
     closed = pyqtSignal()
 
-    def __init__(self, assistant: Optional[ExplainableAIAssistant], theme: Dict[str, str], parent=None):
+    def __init__(self, assistant: Optional[ExplainableAIAssistant], theme: Dict[str, str], parent=None, owner_email: Optional[str] = None):
         super().__init__(parent)
         self.assistant = assistant
+        self.owner_email = owner_email
         self._t = theme
         self.messages: List[Dict[str, Any]] = [
             {
@@ -5141,18 +5222,9 @@ class AIDrawer(QFrame):
                 ulay.setSpacing(2)
 
                 u_bubble = QFrame()
-                u_bg = "#1E1E26" if is_dark else "#FFF1EB"
-                u_border = "rgba(255, 122, 46, 0.35)" if is_dark else "rgba(242, 106, 27, 0.25)"
-                u_bubble.setStyleSheet(f"""
-                    QFrame {{
-                        background: {u_bg};
-                        border: 1px solid {u_border};
-                        border-radius: 12px;
-                        border-bottom-right-radius: 2px;
-                    }}
-                """)
+                u_bubble.setStyleSheet("background: transparent; border: none;")
                 ub_lay = QVBoxLayout(u_bubble)
-                ub_lay.setContentsMargins(10, 8, 10, 8)
+                ub_lay.setContentsMargins(6, 6, 6, 6)
                 ub_lay.setSpacing(3)
 
                 u_hdr = QLabel("👤 You")
@@ -5244,7 +5316,15 @@ class AIDrawer(QFrame):
         citations = []
         if self.assistant:
             try:
-                res = self.assistant.answer_query(txt)
+                # If a specific document is currently selected, prioritize it
+                target_files = None
+                p = self.parent()
+                if p and hasattr(p, "selected_doc") and p.selected_doc:
+                    s_fn = p.selected_doc.get("filename")
+                    if s_fn and any(w in txt.lower() for w in ["this", "current", "here", "file", "document", "contract"]):
+                        target_files = [s_fn]
+
+                res = self.assistant.answer_query(txt, target_filenames=target_files, user_email=self.owner_email)
                 answer_txt = res.get("answer_text") or res.get("answer") or "No direct evidence found in local vault."
                 citations = res.get("citations", []) or res.get("sources", [])
             except Exception as e:
@@ -5347,6 +5427,9 @@ class AIDrawer(QFrame):
             """)
 
         self._render_messages()
+
+    def minimumSizeHint(self) -> QSize:
+        return QSize(280, 200)
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -5546,6 +5629,16 @@ class TopCommandBar(QFrame):
         """)
 
 
+class WorkspaceStack(QStackedWidget):
+    """
+    Fluid stacked widget with a compact minimum size hint.
+    Allows center_splitter to freely resize docked drawers (Details Drawer and AI Drawer)
+    without being locked or jittering against child page size constraints.
+    """
+    def minimumSizeHint(self) -> QSize:
+        return QSize(350, 200)
+
+
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # PRIMARY MAIN WINDOW
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -5576,6 +5669,7 @@ class DocuVault(QMainWindow):
             "tier": "Free",
             "country": "Global",
         }
+        self.user_email = self.current_user.get("email", "user@docuvault.local").strip().lower()
         self.user_tier = self.current_user.get("tier", "Free")
         self.chat_query_count = 0
 
@@ -5587,10 +5681,14 @@ class DocuVault(QMainWindow):
         self.vec_engine = VectorSearchEngine()
         self.organizer = FileOrganizerDaemon(vault_root="vault")
         self.mongo = MongoDatabase()
-        self.assistant = ExplainableAIAssistant(self.vec_engine)
+        self.assistant = ExplainableAIAssistant(self.vec_engine, mongo_database=self.mongo, owner_email=self.user_email)
 
         # Real-Time Directory Tracker (Git-Like Folder Auto-Sync)
-        self.tracker = DirectoryTracker(on_document_discovered=self._on_tracked_document_discovered)
+        self.tracker = DirectoryTracker(
+            on_document_discovered=self._on_tracked_document_discovered,
+            mongo=self.mongo,
+            owner_email=self.user_email,
+        )
         self.tracker.start_background_monitoring(poll_interval_sec=3.0)
 
         # Application State
@@ -5869,23 +5967,29 @@ class DocuVault(QMainWindow):
         # ── Center Splitter (Pages Stack on Left + Draggable Extendable AI Drawer on Right) ──
         self.center_splitter = QSplitter(Qt.Orientation.Horizontal)
         self.center_splitter.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.center_splitter.setHandleWidth(6)
+        self.center_splitter.setOpaqueResize(True)
         self.center_splitter.setStyleSheet("""
-            QSplitter::handle {
-                background: rgba(255, 122, 46, 0.20);
-                width: 4px;
+            QSplitter::handle:horizontal {
+                background: rgba(255, 122, 46, 0.22);
+                border-left: 1px solid rgba(255, 122, 46, 0.40);
             }
-            QSplitter::handle:hover {
+            QSplitter::handle:horizontal:hover {
                 background: #FF7A2E;
-                width: 6px;
+            }
+            QSplitter::handle:horizontal:pressed {
+                background: #FF944D;
             }
         """)
 
-        self.stack = QStackedWidget()
+        self.stack = WorkspaceStack()
         self.stack.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.stack.setStyleSheet("background: transparent; border: none;")
         self.page_docs = self._build_documents_page()
         self.page_ai = AIAssistantPage(self.assistant, self.theme)
         self.page_storage = StorageVaultPage(self.theme)
+        self.page_storage.btn_sync_now.clicked.connect(self._sync_storage_vault)
+        self.page_storage.btn_change_loc.clicked.connect(self._track_new_directory)
         self.page_security = IntegritySecurityPage(self.theme)
         self.page_audit = AuditTrailPage(self.theme)
         self.page_deadlines = DeadlinesPage(self.theme)
@@ -5904,14 +6008,14 @@ class DocuVault(QMainWindow):
         self.inspector.setVisible(False)
 
         # Option E: Draggable Extendable Right-Hand AI Drawer
-        self.ai_drawer = AIDrawer(self.assistant, self.theme, self)
+        self.ai_drawer = AIDrawer(self.assistant, self.theme, self, owner_email=self.user_email)
         self.ai_drawer.closed.connect(self._toggle_ai_drawer)
         self.ai_drawer.setVisible(False)
         self.center_splitter.addWidget(self.ai_drawer)
 
         self.center_splitter.setCollapsible(0, False)
-        self.center_splitter.setCollapsible(1, True)
-        self.center_splitter.setCollapsible(2, True)
+        self.center_splitter.setCollapsible(1, False)
+        self.center_splitter.setCollapsible(2, False)
         self.center_splitter.setStretchFactor(0, 1)
         self.center_splitter.setStretchFactor(1, 0)
         self.center_splitter.setStretchFactor(2, 0)
@@ -5968,12 +6072,24 @@ class DocuVault(QMainWindow):
             self.master_stack.setCurrentIndex(1)
 
     def _on_user_authenticated(self, user_data: Dict[str, Any]):
-        """Transitions from login/register to main workspace in the SAME window."""
+        """Transitions from login/register to main workspace in the SAME window with clean user partition."""
         self.current_user = user_data
+        self.user_email = user_data.get("email", "").strip().lower()
         self.user_tier = user_data.get("tier", "Free")
+        self.chat_query_count = 0
         self.header_banner.set_user_info(self.current_user)
         if hasattr(self, "page_ai"):
             self.page_ai.set_user_info(self.current_user)
+        if hasattr(self, "assistant"):
+            self.assistant.set_owner_email(self.user_email)
+        if hasattr(self, "ai_drawer"):
+            self.ai_drawer.owner_email = self.user_email
+        if hasattr(self, "tracker"):
+            self.tracker.set_owner_email(self.user_email)
+
+        # Reload vault database strictly scoped to this authenticated user
+        self._load_vault_database()
+
         self._show_feedback(f"Welcome back, {user_data.get('full_name', 'User')}! Vault unlocked.")
         self.master_stack.setCurrentIndex(2)
         self.stack.setCurrentIndex(0)
@@ -6021,8 +6137,8 @@ class DocuVault(QMainWindow):
         self.toolbar.setFixedHeight(48)
         self.toolbar.setStyleSheet(f"border-bottom: 1px solid {self.theme['border']}; background: {self.theme['surface']};")
         tlay = QHBoxLayout(self.toolbar)
-        tlay.setContentsMargins(16, 0, 16, 0)
-        tlay.setSpacing(8)
+        tlay.setContentsMargins(12, 0, 12, 0)
+        tlay.setSpacing(6)
 
         # Category Filter Pills
         self.filter_buttons: Dict[str, QPushButton] = {}
@@ -6035,17 +6151,17 @@ class DocuVault(QMainWindow):
             tlay.addWidget(btn)
             self.filter_buttons[cat] = btn
 
-        tlay.addSpacing(6)
+        tlay.addSpacing(4)
         # Redesigned Document Count (Clean, borderless typography)
         self.doc_count_lbl = QLabel("0 documents")
-        self.doc_count_lbl.setStyleSheet(f"font-size: 12px; font-weight: 600; color: {self.theme['text3']};")
+        self.doc_count_lbl.setStyleSheet(f"font-size: 11.5px; font-weight: 600; color: {self.theme['text3']};")
         tlay.addWidget(self.doc_count_lbl)
 
         tlay.addStretch()
 
         # Universal Search Bar with embedded Ctrl+K badge
         search_wrap = QFrame()
-        search_wrap.setFixedWidth(180)
+        search_wrap.setFixedWidth(145)
         search_wrap.setFixedHeight(30)
         search_wrap.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         swlay = QHBoxLayout(search_wrap)
@@ -6235,7 +6351,7 @@ class DocuVault(QMainWindow):
             if hasattr(self, "btn_toggle_inspector"):
                 self.btn_toggle_inspector.setChecked(True)
             total_w = self.center_splitter.width() or self.width()
-            insp_w = max(380, int(total_w * 0.32))
+            insp_w = max(340, min(550, int(total_w * 0.32)))
             main_w = max(400, total_w - insp_w)
             self.center_splitter.setSizes([main_w, insp_w, 0])
             self._show_feedback("Document Details Drawer opened — drag border to resize")
@@ -6267,47 +6383,52 @@ class DocuVault(QMainWindow):
         if idx == 1:
             self.page_ai.set_assistant(self.assistant)
         elif idx == 2:
-            self.page_storage.refresh_storage_metrics(self.docs)
+            self.page_storage.refresh_storage_metrics(self.docs, self.user_tier)
         elif idx == 3:
             self.page_security.refresh_metrics(self.docs)
         elif idx == 4:
             self.page_audit.refresh_from_logs(
-                self.mongo.get_audit_logs() if self.mongo.is_connected else [],
+                self.mongo.get_audit_logs(user_email=self.user_email) if self.mongo.is_connected else [],
                 len(self.docs)
             )
         elif idx == 5:
-            self.page_deadlines.refresh_deadlines(self.mongo.list_deadlines())
+            self.page_deadlines.refresh_deadlines(self.mongo.list_deadlines(user_email=self.user_email))
         self._show_feedback(f"Navigated to {titles[idx]}")
 
     def _show_feedback(self, msg: str):
         self.feedback_msg.setText(msg)
         self.page_audit.log_event(msg)
         if hasattr(self, "mongo") and self.mongo.is_connected:
-            self.mongo.log_audit("FEEDBACK", msg)
+            self.mongo.log_audit("FEEDBACK", msg, user_email=getattr(self, "user_email", None))
 
     # ─── Database & Vault Loading (MongoDB Realtime Primary) ───────────────
 
     def _load_vault_database(self):
-        """Loads real documents from MongoDB or syncs authentic vault documents."""
+        """Loads real documents from MongoDB partitioned for the active user."""
         self.docs.clear()
-        categories = ["Legal", "Financial", "Medical", "Academic", "General"]
+        self.catalog = CatalogManager()
+        self.vec_engine = VectorSearchEngine()
 
-        # 1. Attempt loading from MongoDB realtime collection
+        if hasattr(self, "tracker") and hasattr(self, "user_email"):
+            self.tracker.set_owner_email(self.user_email)
+
+        # 1. Attempt loading from MongoDB realtime collection filtered by active user
         loaded_from_mongo = False
         if self.mongo.is_connected:
             loaded_from_mongo = True
-            mongo_docs = self.mongo.list_documents()
+            mongo_docs = self.mongo.list_documents(user_email=getattr(self, "user_email", None))
             for doc in mongo_docs:
                 doc_id = doc.get("doc_id")
                 if doc_id:
                     self.docs[doc_id] = doc
                     self.catalog.add_document(doc, storage_mode=self.storage_mode)
                     self.vec_engine.add_document_chunks(
-                        doc_id, doc.get("filename", ""), doc.get("category", "General"), doc.get("pages", [])
+                        doc_id, doc.get("filename", ""), doc.get("category", "General"), doc.get("pages", []), owner_email=self.user_email
                     )
 
-        # 2. Only if MongoDB is completely offline/disconnected, check local fallback
-        if not loaded_from_mongo:
+        # 2. Only if MongoDB is completely offline/disconnected and demo user, check local fallback
+        if not loaded_from_mongo and not self.docs and getattr(self, "user_email", "") in ("user@docuvault.local", "demo@docuvault.ai", ""):
+            categories = ["Legal", "Financial", "Medical", "Academic", "General"]
             for cat in categories:
                 cat_dir = Path("vault") / cat
                 if cat_dir.exists():
@@ -6317,26 +6438,36 @@ class DocuVault(QMainWindow):
                                 doc = DocumentFactory.create_document(str(f), category_hint=cat, enforce_magic_bytes=False)
                                 dd = doc.to_dict()
                                 dd["pages"] = [{"page_number": p.get("page_number", i+1), "text": p.get("text", "")} for i, p in enumerate(doc.pages)]
+                                dd["owner_email"] = self.user_email
                                 self.docs[doc.doc_id] = dd
                                 self.catalog.add_document(dd, storage_mode=self.storage_mode)
-                                self.vec_engine.add_document_chunks(doc.doc_id, doc.filename, doc.get_category(), doc.pages)
+                                self.vec_engine.add_document_chunks(doc.doc_id, doc.filename, doc.get_category(), doc.pages, owner_email=self.user_email)
                             except Exception:
                                 pass
 
         self.vec_engine.build_index()
         self.assistant.set_engine(self.vec_engine)
         self.assistant.set_mongo(self.mongo)
-        self.page_ai.set_assistant(self.assistant)
-        self.page_deadlines.refresh_deadlines(self.mongo.list_deadlines())
+        self.assistant.set_owner_email(self.user_email)
+        if hasattr(self, "ai_drawer"):
+            self.ai_drawer.owner_email = self.user_email
+        if hasattr(self, "page_ai"):
+            self.page_ai.set_assistant(self.assistant)
+        if hasattr(self, "page_deadlines"):
+            self.page_deadlines.refresh_deadlines(self.mongo.list_deadlines(user_email=getattr(self, "user_email", None)))
         if hasattr(self, "page_storage"):
-            self.page_storage.refresh_storage_metrics(self.docs)
+            self.page_storage.refresh_storage_metrics(self.docs, getattr(self, "user_tier", "Free"))
         if hasattr(self, "page_security"):
             self.page_security.refresh_metrics(self.docs)
         if hasattr(self, "page_audit"):
             self.page_audit.refresh_from_logs(
-                self.mongo.get_audit_logs() if self.mongo.is_connected else [],
+                self.mongo.get_audit_logs(user_email=getattr(self, "user_email", None)) if self.mongo.is_connected else [],
                 len(self.docs)
             )
+
+        if hasattr(self, "inspector"):
+            self.inspector.show_empty()
+        self.selected_doc = None
 
         self._render_documents()
         self._update_metrics_bar()
@@ -6459,6 +6590,7 @@ class DocuVault(QMainWindow):
         else:
             sz_str = f"{total_bytes} B"
 
+
         self.header_banner.update_metrics(total, sz_str, pct, cats)
 
     # ─── Filter & Search Handling ─────────────────────────────────────────
@@ -6471,9 +6603,9 @@ class DocuVault(QMainWindow):
                     background: {t['primary']};
                     color: #FFFFFF;
                     border: 1px solid {t['primary']};
-                    border-radius: 14px;
-                    padding: 5px 16px;
-                    font-size: 11.5px;
+                    border-radius: 13px;
+                    padding: 4px 11px;
+                    font-size: 11px;
                     font-weight: 700;
                 }}
             """)
@@ -6483,9 +6615,9 @@ class DocuVault(QMainWindow):
                     background: {t['bg3']};
                     color: {t['text2']};
                     border: 1px solid {t['border']};
-                    border-radius: 14px;
-                    padding: 5px 16px;
-                    font-size: 11.5px;
+                    border-radius: 13px;
+                    padding: 4px 11px;
+                    font-size: 11px;
                     font-weight: 500;
                 }}
                 QPushButton:hover {{
@@ -6561,8 +6693,14 @@ class DocuVault(QMainWindow):
             if doc_id:
                 if doc_id in self.docs:
                     del self.docs[doc_id]
-                self.mongo.delete_document(doc_id)
-                self.mongo.log_audit("DELETE", f"Removed '{fname}' from repository index", doc_id)
+                self.mongo.delete_document(doc_id, user_email=getattr(self, "user_email", None))
+                self.mongo.log_audit(
+                    "DELETE",
+                    f"Removed '{fname}' from repository index",
+                    doc_id,
+                    operator=self.current_user.get("full_name", "User"),
+                    user_email=getattr(self, "user_email", None)
+                )
 
             if self.selected_doc and self.selected_doc.get("doc_id") == doc_id:
                 self.selected_doc = None
@@ -6570,6 +6708,15 @@ class DocuVault(QMainWindow):
                     self.inspector.show_empty()
             self._render_documents()
             self._update_metrics_bar()
+            if hasattr(self, "page_storage"):
+                self.page_storage.refresh_storage_metrics(self.docs, getattr(self, "user_tier", "Free"))
+            if hasattr(self, "page_security"):
+                self.page_security.refresh_metrics(self.docs)
+            if hasattr(self, "page_audit"):
+                self.page_audit.refresh_from_logs(
+                    self.mongo.get_audit_logs(user_email=getattr(self, "user_email", None)) if self.mongo.is_connected else [],
+                    len(self.docs)
+                )
             self._show_feedback(f"Removed '{fname}' from repository index")
 
     def _view_selected_document_text(self):
@@ -6750,25 +6897,41 @@ class DocuVault(QMainWindow):
         self._show_feedback(msg)
 
     def _on_worker_finished(self, doc_dict: Dict[str, Any]):
-        self.progress_bar.setVisible(False)
+        doc_dict["owner_email"] = getattr(self, "user_email", None)
         self.docs[doc_dict["doc_id"]] = doc_dict
         self.catalog.add_document(doc_dict, storage_mode=self.storage_mode)
 
-        # Persist to MongoDB in real-time
-        self.mongo.save_document(doc_dict)
+        # Persist to MongoDB in real-time with user ownership
+        self.mongo.save_document(doc_dict, user_email=getattr(self, "user_email", None))
         self.mongo.save_version(doc_dict["doc_id"], {
             "version_number": "1.0",
             "sha256_hash": doc_dict.get("sha256_hash"),
-            "author": "Ingest Worker",
+            "author": self.current_user.get("full_name", "Ingest Worker"),
+            "owner_email": getattr(self, "user_email", None),
             "text_snapshot": " ".join(p.get("text", "") for p in doc_dict.get("pages", [])),
         })
-        self.mongo.log_audit("IMPORT", f"Successfully imported '{doc_dict['filename']}'", doc_dict["doc_id"])
+        self.mongo.log_audit(
+            "IMPORT",
+            f"Successfully imported '{doc_dict['filename']}'",
+            doc_dict["doc_id"],
+            operator=self.current_user.get("full_name", "User"),
+            user_email=getattr(self, "user_email", None)
+        )
 
         self.vec_engine.build_index()
         self.assistant.set_engine(self.vec_engine)
 
         self._render_documents()
         self._update_metrics_bar()
+        if hasattr(self, "page_storage"):
+            self.page_storage.refresh_storage_metrics(self.docs, getattr(self, "user_tier", "Free"))
+        if hasattr(self, "page_security"):
+            self.page_security.refresh_metrics(self.docs)
+        if hasattr(self, "page_audit"):
+            self.page_audit.refresh_from_logs(
+                self.mongo.get_audit_logs(user_email=getattr(self, "user_email", None)) if self.mongo.is_connected else [],
+                len(self.docs)
+            )
         self._select_document(doc_dict)
         self._show_feedback(f"Successfully imported '{doc_dict['filename']}' to MongoDB")
         QTimer.singleShot(100, self._process_next_import)
@@ -6821,8 +6984,23 @@ class DocuVault(QMainWindow):
         dlg.exec()
 
     def _handle_sign_out(self):
-        """Clears session and switches back to embedded login in the SAME window."""
+        """Clears session and switches back to embedded login in the SAME window with clean state."""
         SessionManager.clear_session()
+        self.current_user = {}
+        self.user_email = ""
+        self.docs.clear()
+        self.selected_doc = None
+        self.catalog = CatalogManager()
+        self.vec_engine = VectorSearchEngine()
+        if hasattr(self, "inspector"):
+            self.inspector.show_empty()
+            self.inspector.setVisible(False)
+        if hasattr(self, "btn_toggle_inspector"):
+            self.btn_toggle_inspector.setChecked(False)
+        if hasattr(self, "ai_drawer"):
+            self.ai_drawer.setVisible(False)
+        self._render_documents()
+        self._update_metrics_bar()
         self.master_stack.setCurrentIndex(1)
         self._show_feedback("Signed out securely. Please sign in.")
 
@@ -6912,20 +7090,17 @@ class DocuVault(QMainWindow):
         if not path:
             return
 
-        added = self.tracker.add_watched_folder(path)
-        if not added:
-            QMessageBox.information(self, "Folder Already Tracked", f"The directory is already being monitored:\n{path}")
-            return
-
+        self.tracker.add_watched_folder(path)
         self._update_folder_sync_badge()
-        self._show_feedback(f"Now tracking directory: {Path(path).name} ... Scanning for documents...")
+        self._show_feedback(f"Tracking & scanning directory: {Path(path).name} ...")
 
-        # Immediate scan
-        found = self.tracker.scan_folder(path)
+        # Ingest all files in the tracked directory for the active user
+        found = self.tracker.scan_folder(path, force=True)
         for doc_dict in found:
             self._on_tracked_document_discovered(doc_dict)
 
-        self._show_feedback(f"Tracked directory active. Ingested {len(found)} documents from {Path(path).name}")
+        self._load_vault_database()
+        self._show_feedback(f"Tracked directory synced. Processed {len(found)} documents from {Path(path).name}")
 
     def _open_tracked_folders_dialog(self):
         """Opens modal to view and manage watched directories."""
@@ -6935,17 +7110,29 @@ class DocuVault(QMainWindow):
 
     def _on_tracked_folders_changed(self):
         self._update_folder_sync_badge()
-        self._render_documents()
+        self._load_vault_database()
 
     def _rescan_watched_directories(self):
         """Manually triggers a full re-scan of all monitored directories."""
         self._show_feedback("Scanning all monitored folders for new or modified files...")
-        found = self.tracker.scan_all_watched()
+        found = self.tracker.scan_all_watched(force=True)
         for doc_dict in found:
             self._on_tracked_document_discovered(doc_dict)
+        self._load_vault_database()
         self._update_folder_sync_badge()
-        self._render_documents()
-        self._show_feedback(f"Folder sync complete. Processed {len(found)} documents.")
+        self._show_feedback(f"Folder sync complete. Processed {len(found)} documents across monitored folders.")
+
+    def _sync_storage_vault(self):
+        """Manually trigger background folder synchronization and refresh real-time metrics."""
+        self._show_feedback("Synchronizing Storage Vault and cloud mirrors...")
+        if hasattr(self, "tracker"):
+            found = self.tracker.scan_all_watched()
+            for doc_dict in found:
+                self._on_tracked_document_discovered(doc_dict)
+            self._update_folder_sync_badge()
+        if hasattr(self, "page_storage"):
+            self.page_storage.refresh_storage_metrics(self.docs, getattr(self, "user_tier", "Free"))
+        self._show_feedback(f"Storage Vault synced • {len(self.docs)} files up to date")
 
     def _on_tracked_document_discovered(self, doc_dict: Dict[str, Any]):
         """Handler called when DirectoryTracker discovers an incoming file."""
@@ -6954,9 +7141,10 @@ class DocuVault(QMainWindow):
             return
 
         # Add to state and databases
+        doc_dict["owner_email"] = getattr(self, "user_email", None)
         self.docs[doc_id] = doc_dict
         self.catalog.add_document(doc_dict)
-        self.mongo.save_document(doc_dict)
+        self.mongo.save_document(doc_dict, user_email=getattr(self, "user_email", None))
 
         # Index into in-memory NumPy vector engine with hierarchical chunking
         pages = doc_dict.get("pages", []) or [{"page_number": 1, "text": doc_dict.get("raw_text", "")}]
@@ -6972,6 +7160,8 @@ class DocuVault(QMainWindow):
         QTimer.singleShot(0, self._render_documents)
         QTimer.singleShot(0, self._update_metrics_bar)
         QTimer.singleShot(0, self._update_folder_sync_badge)
+        if hasattr(self, "page_storage"):
+            QTimer.singleShot(0, lambda: self.page_storage.refresh_storage_metrics(self.docs, getattr(self, "user_tier", "Free")))
         QTimer.singleShot(0, lambda: self._show_feedback(f"⚡ Ingested: {doc_dict.get('filename')} (Auto-saved to MongoDB)"))
 
     def _open_api_key_dialog(self):
