@@ -355,6 +355,21 @@ class MongoDatabase:
         else:
             self._deadlines_backup.append(deadline)
 
+    def delete_deadline(self, deadline_id: str, user_email: Optional[str] = None) -> bool:
+        """Deletes a deadline by ID."""
+        success = False
+        if self.is_connected:
+            try:
+                q: Dict[str, Any] = {"id": deadline_id}
+                if user_email:
+                    q["$or"] = [{"owner_email": user_email.strip().lower()}, {"owner_email": {"$exists": False}}]
+                res = self.db.deadlines.delete_one(q)
+                success = res.deleted_count > 0
+            except Exception:
+                pass
+        self._deadlines_backup = [d for d in self._deadlines_backup if d.get("id") != deadline_id]
+        return success
+
     def list_deadlines(self, user_email: Optional[str] = None) -> List[Dict[str, Any]]:
         """Lists all document deadlines."""
         if self.is_connected:

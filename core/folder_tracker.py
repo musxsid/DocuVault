@@ -41,6 +41,7 @@ class DirectoryTracker:
         self.audit_logger = AuditLogger("file_ops.log")
         self._watched_folders: List[str] = self._load_watched_folders()
         self._file_index: Dict[str, Dict[str, Any]] = self._load_file_index()
+        self._failed_files: Dict[str, float] = {}
         self._running = False
         self._thread: Optional[threading.Thread] = None
         self._lock = threading.Lock()
@@ -125,6 +126,10 @@ class DirectoryTracker:
         mtime = stat.st_mtime
         size = stat.st_size
 
+        with self._lock:
+            if not force and self._failed_files.get(str(p)) == mtime:
+                return None
+
         try:
             # 1. Binary validation & SHA-256
             BinaryParser.validate_file(str(p))
@@ -201,6 +206,7 @@ class DirectoryTracker:
                     "filename": doc.filename,
                     "indexed_at": datetime.now().isoformat(),
                 }
+                self._failed_files.pop(str(p), None)
                 self._save_file_index()
 
             # 7. Audit Logging to file_ops.log
@@ -221,7 +227,11 @@ class DirectoryTracker:
 
         except Exception as e:
             # Skip invalid or corrupt temp files gracefully
-            print(f"[DirectoryTracker] Warning parsing file '{p.name}': {e}")
+            with self._lock:
+                prev_failed_mtime = self._failed_files.get(str(p))
+                self._failed_files[str(p)] = mtime
+            if prev_failed_mtime != mtime or force:
+                print(f"[DirectoryTracker] Warning parsing file '{p.name}': {e}")
             return None
 
     def scan_folder(self, folder_path: str, force: bool = False) -> List[Dict[str, Any]]:

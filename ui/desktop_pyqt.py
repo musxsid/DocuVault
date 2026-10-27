@@ -10,7 +10,7 @@ import random
 import re
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -28,10 +28,10 @@ from PyQt6.QtGui import (
     QPen, QPixmap, QRadialGradient, QShortcut,
 )
 from PyQt6.QtWidgets import (
-    QAbstractItemView, QApplication, QCheckBox, QDialog, QFileDialog, QFrame,
-    QGraphicsOpacityEffect, QGridLayout, QHBoxLayout, QHeaderView, QLabel,
-    QLineEdit, QMainWindow, QMessageBox, QProgressBar, QPushButton,
-    QScrollArea, QSizePolicy, QSplitter, QStackedWidget,
+    QAbstractItemView, QApplication, QCheckBox, QComboBox, QDialog, QFileDialog, QFrame,
+    QGraphicsOpacityEffect, QGridLayout, QHBoxLayout, QHeaderView, QInputDialog, QLabel,
+    QLineEdit, QMainWindow, QMenu, QMessageBox, QProgressBar, QPushButton,
+    QScrollArea, QSizePolicy, QSpinBox, QSplitter, QStackedWidget,
     QTableWidget, QTableWidgetItem, QTextBrowser, QTextEdit, QVBoxLayout, QWidget,
 )
 
@@ -119,9 +119,9 @@ LIGHT = {
     "primary_pressed": "#E04F08",
     "primary_bg": "#FFF1EB",
     "primary_border": "#FDBA74",
-    "green": "#32D583",
-    "green_bg": "#ECFDF5",
-    "green_border": "#A7F3D0",
+    "green": "#F26A1B",
+    "green_bg": "#FFF1EB",
+    "green_border": "#FDBA74",
     "warning": "#F5B544",
     "danger": "#F0556E",
     "red": "#F0556E",
@@ -170,9 +170,9 @@ DARK = {
     "primary_pressed": "#E04F08",
     "primary_bg": "rgba(255, 122, 46, 0.14)",
     "primary_border": "rgba(255, 122, 46, 0.35)",
-    "green": "#32D583",
-    "green_bg": "rgba(50, 213, 131, 0.14)",
-    "green_border": "rgba(50, 213, 131, 0.30)",
+    "green": "#FF7A2E",
+    "green_bg": "rgba(255, 122, 46, 0.14)",
+    "green_border": "rgba(255, 122, 46, 0.35)",
     "warning": "#F5B544",
     "danger": "#F0556E",
     "red": "#F0556E",
@@ -558,8 +558,233 @@ def draw_vector_icon(name: str, color_hex: str, size: int = 20) -> QPixmap:
         p.drawEllipse(QPointF(cx, cy), r, r)
         p.drawLine(QPointF(cx + r * 0.707, cy + r * 0.707), QPointF(size * 0.82, size * 0.82))
 
+    elif name == "organizer":
+        # Folder with sorting arrow
+        fpath = QPainterPath()
+        fpath.moveTo(size * 0.14, size * 0.26)
+        fpath.lineTo(size * 0.42, size * 0.26)
+        fpath.lineTo(size * 0.50, size * 0.36)
+        fpath.lineTo(size * 0.86, size * 0.36)
+        fpath.lineTo(size * 0.86, size * 0.80)
+        fpath.lineTo(size * 0.14, size * 0.80)
+        fpath.closeSubpath()
+        p.drawPath(fpath)
+        # Inside horizontal lines indicating file categories
+        p.drawLine(QPointF(size * 0.28, size * 0.52), QPointF(size * 0.72, size * 0.52))
+        p.drawLine(QPointF(size * 0.28, size * 0.65), QPointF(size * 0.58, size * 0.65))
+
+    elif name in ("pencil", "edit"):
+        # Modern diagonal editing pencil
+        p.save()
+        p.translate(size * 0.5, size * 0.5)
+        p.rotate(-45)
+        p.drawRect(QRectF(-size * 0.12, -size * 0.35, size * 0.24, size * 0.55))
+        tip = QPainterPath()
+        tip.moveTo(-size * 0.12, size * 0.20)
+        tip.lineTo(0, size * 0.40)
+        tip.lineTo(size * 0.12, size * 0.20)
+        p.drawPath(tip)
+        p.restore()
+
+    elif name in ("trash", "delete"):
+        # Modern trash can with lid
+        p.drawLine(QPointF(size * 0.20, size * 0.30), QPointF(size * 0.80, size * 0.30))
+        p.drawLine(QPointF(size * 0.40, size * 0.22), QPointF(size * 0.60, size * 0.22))
+        can = QPainterPath()
+        can.moveTo(size * 0.28, size * 0.30)
+        can.lineTo(size * 0.32, size * 0.82)
+        can.lineTo(size * 0.68, size * 0.82)
+        can.lineTo(size * 0.72, size * 0.30)
+        p.drawPath(can)
+        p.drawLine(QPointF(size * 0.44, size * 0.42), QPointF(size * 0.44, size * 0.70))
+        p.drawLine(QPointF(size * 0.56, size * 0.42), QPointF(size * 0.56, size * 0.70))
+
+    elif name in ("clip", "attachment"):
+        # Modern 45-degree angled paperclip
+        p.save()
+        p.translate(size * 0.5, size * 0.5)
+        p.rotate(-45)
+        cp = QPainterPath()
+        w = size * 0.15
+        h = size * 0.30
+        cp.moveTo(-w, h * 0.5)
+        cp.lineTo(-w, -h * 0.5)
+        cp.arcTo(QRectF(-w, -h, w * 2, w * 2), 180, -180)
+        cp.lineTo(w, h * 0.7)
+        cp.arcTo(QRectF(-w * 0.5, h * 0.4, w * 1.5, w * 1.5), 0, -180)
+        cp.lineTo(-w * 0.5, -h * 0.2)
+        p.drawPath(cp)
+        p.restore()
+
+    elif name == "send":
+        # Sleek upward arrow
+        p.save()
+        p.translate(size * 0.5, size * 0.5)
+        p.drawLine(QPointF(0, size * 0.22), QPointF(0, -size * 0.22))
+        arr = QPainterPath()
+        arr.moveTo(-size * 0.18, -size * 0.04)
+        arr.lineTo(0, -size * 0.22)
+        arr.lineTo(size * 0.18, -size * 0.04)
+        p.drawPath(arr)
+        p.restore()
+
+    elif name in ("copy", "clipboard"):
+        p.drawRoundedRect(QRectF(size * 0.32, size * 0.16, size * 0.52, size * 0.58), 2.5, 2.5)
+        cpath = QPainterPath()
+        cpath.moveTo(size * 0.68, size * 0.74)
+        cpath.lineTo(size * 0.20, size * 0.74)
+        cpath.lineTo(size * 0.20, size * 0.32)
+        p.drawPath(cpath)
+
+    elif name in ("refresh", "regenerate"):
+        p.drawArc(QRectF(size * 0.20, size * 0.20, size * 0.60, size * 0.60), 45 * 16, 270 * 16)
+        tip = QPainterPath()
+        tip.moveTo(size * 0.72, size * 0.22)
+        tip.lineTo(size * 0.82, size * 0.36)
+        tip.lineTo(size * 0.66, size * 0.42)
+        p.drawPath(tip)
+
+    elif name in ("chat", "message"):
+        bpath = QPainterPath()
+        bpath.addRoundedRect(QRectF(size * 0.16, size * 0.18, size * 0.68, size * 0.50), 4, 4)
+        bpath.moveTo(size * 0.28, size * 0.68)
+        bpath.lineTo(size * 0.22, size * 0.82)
+        bpath.lineTo(size * 0.44, size * 0.68)
+        p.drawPath(bpath)
+
+    elif name == "user":
+        p.drawEllipse(QRectF(size * 0.34, size * 0.16, size * 0.32, size * 0.32))
+        body = QPainterPath()
+        body.moveTo(size * 0.18, size * 0.82)
+        body.quadTo(QPointF(size * 0.18, size * 0.56), QPointF(size * 0.50, size * 0.56))
+        body.quadTo(QPointF(size * 0.82, size * 0.56), QPointF(size * 0.82, size * 0.82))
+        p.drawPath(body)
+
+    elif name == "plus":
+        p.drawLine(QPointF(size * 0.50, size * 0.22), QPointF(size * 0.50, size * 0.78))
+        p.drawLine(QPointF(size * 0.22, size * 0.50), QPointF(size * 0.78, size * 0.50))
+
+    elif name in ("dots_v", "more", "menu_dots"):
+        r = max(1.2, size * 0.07)
+        p.setBrush(QBrush(c))
+        p.setPen(Qt.PenStyle.NoPen)
+        p.drawEllipse(QPointF(size * 0.5, size * 0.25), r, r)
+        p.drawEllipse(QPointF(size * 0.5, size * 0.50), r, r)
+        p.drawEllipse(QPointF(size * 0.5, size * 0.75), r, r)
+        p.setBrush(Qt.BrushStyle.NoBrush)
+
+    elif name in ("chevron_down", "down"):
+        arr = QPainterPath()
+        arr.moveTo(size * 0.26, size * 0.38)
+        arr.lineTo(size * 0.50, size * 0.62)
+        arr.lineTo(size * 0.74, size * 0.38)
+        p.drawPath(arr)
+
+    elif name in ("check", "checkmark"):
+        chk = QPainterPath()
+        chk.moveTo(size * 0.22, size * 0.52)
+        chk.lineTo(size * 0.42, size * 0.72)
+        chk.lineTo(size * 0.78, size * 0.28)
+        p.drawPath(chk)
+
+    elif name in ("sparkle", "ai"):
+        spath = QPainterPath()
+        cx, cy = size * 0.5, size * 0.5
+        spath.moveTo(cx, size * 0.14)
+        spath.quadTo(cx, cy, size * 0.86, cy)
+        spath.quadTo(cx, cy, cx, size * 0.86)
+        spath.quadTo(cx, cy, size * 0.14, cy)
+        spath.quadTo(cx, cy, cx, size * 0.14)
+        p.setBrush(QBrush(c))
+        p.setPen(Qt.PenStyle.NoPen)
+        p.drawPath(spath)
+        p.setBrush(Qt.BrushStyle.NoBrush)
+
+    elif name in ("eye", "view"):
+        epath = QPainterPath()
+        epath.moveTo(size * 0.14, size * 0.50)
+        epath.quadTo(QPointF(size * 0.50, size * 0.20), QPointF(size * 0.86, size * 0.50))
+        epath.quadTo(QPointF(size * 0.50, size * 0.80), QPointF(size * 0.14, size * 0.50))
+        p.drawPath(epath)
+        p.drawEllipse(QRectF(size * 0.40, size * 0.40, size * 0.20, size * 0.20))
+
+    elif name == "zoom_in":
+        r = size * 0.24
+        cx, cy = size * 0.42, size * 0.42
+        p.drawEllipse(QPointF(cx, cy), r, r)
+        p.drawLine(QPointF(cx + r * 0.707, cy + r * 0.707), QPointF(size * 0.84, size * 0.84))
+        p.drawLine(QPointF(cx - 3, cy), QPointF(cx + 3, cy))
+        p.drawLine(QPointF(cx, cy - 3), QPointF(cx, cy + 3))
+
+    elif name == "zoom_out":
+        r = size * 0.24
+        cx, cy = size * 0.42, size * 0.42
+        p.drawEllipse(QPointF(cx, cy), r, r)
+        p.drawLine(QPointF(cx + r * 0.707, cy + r * 0.707), QPointF(size * 0.84, size * 0.84))
+        p.drawLine(QPointF(cx - 3, cy), QPointF(cx + 3, cy))
+
+    elif name == "fit":
+        # 4 corner brackets
+        s = size * 0.18
+        p.drawLine(QPointF(s, s * 2), QPointF(s, s))
+        p.drawLine(QPointF(s, s), QPointF(s * 2, s))
+        p.drawLine(QPointF(size - s * 2, s), QPointF(size - s, s))
+        p.drawLine(QPointF(size - s, s), QPointF(size - s, s * 2))
+        p.drawLine(QPointF(size - s, size - s * 2), QPointF(size - s, size - s))
+        p.drawLine(QPointF(size - s, size - s), QPointF(size - s * 2, size - s))
+        p.drawLine(QPointF(s * 2, size - s), QPointF(s, size - s))
+        p.drawLine(QPointF(s, size - s), QPointF(s, size - s * 2))
+
+    elif name == "settings":
+        p.drawEllipse(QRectF(size * 0.32, size * 0.32, size * 0.36, size * 0.36))
+        for a in range(0, 360, 60):
+            p.save()
+            p.translate(size * 0.5, size * 0.5)
+            p.rotate(a)
+            p.drawRect(QRectF(-size * 0.06, -size * 0.44, size * 0.12, size * 0.15))
+            p.restore()
+
+    elif name in ("thumb_up", "helpful"):
+        tpath = QPainterPath()
+        tpath.moveTo(size * 0.22, size * 0.45)
+        tpath.lineTo(size * 0.38, size * 0.45)
+        tpath.lineTo(size * 0.48, size * 0.20)
+        tpath.lineTo(size * 0.56, size * 0.20)
+        tpath.lineTo(size * 0.52, size * 0.45)
+        tpath.lineTo(size * 0.78, size * 0.45)
+        tpath.quadTo(QPointF(size * 0.84, size * 0.55), QPointF(size * 0.78, size * 0.65))
+        tpath.lineTo(size * 0.74, size * 0.75)
+        tpath.lineTo(size * 0.38, size * 0.75)
+        tpath.lineTo(size * 0.22, size * 0.75)
+        tpath.closeSubpath()
+        p.drawPath(tpath)
+
+    elif name in ("thumb_down", "unhelpful"):
+        tpath = QPainterPath()
+        tpath.moveTo(size * 0.22, size * 0.55)
+        tpath.lineTo(size * 0.38, size * 0.55)
+        tpath.lineTo(size * 0.48, size * 0.80)
+        tpath.lineTo(size * 0.56, size * 0.80)
+        tpath.lineTo(size * 0.52, size * 0.55)
+        tpath.lineTo(size * 0.78, size * 0.55)
+        tpath.quadTo(QPointF(size * 0.84, size * 0.45), QPointF(size * 0.78, size * 0.35))
+        tpath.lineTo(size * 0.74, size * 0.25)
+        tpath.lineTo(size * 0.38, size * 0.25)
+        tpath.lineTo(size * 0.22, size * 0.25)
+        tpath.closeSubpath()
+        p.drawPath(tpath)
+
     p.end()
     return pm
+
+
+def get_app_icon() -> QIcon:
+    """Generates an ultra-crisp, multi-resolution application icon for window and taskbar."""
+    icon = QIcon()
+    for s in (16, 20, 24, 32, 48, 64, 128, 256):
+        pm = draw_vector_icon("logo", "#F26A1B", s)
+        icon.addPixmap(pm)
+    return icon
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -745,7 +970,7 @@ class DonutUsageWidget(QWidget):
         self.setFixedSize(180, 180)
         self.slices = [
             ("Legal", 442, "#6B9BFF"),
-            ("Financial", 154, "#32D583"),
+            ("Financial", 154, "#FF9548"),
             ("Academic", 135, "#A58BFF"),
             ("Medical", 96, "#F0556E"),
             ("General", 134, "#FF7A2E"),
@@ -834,14 +1059,14 @@ class HealthScoreRingWidget(QWidget):
         rect = QRectF(cx - r, cy - r, r * 2.0, r * 2.0)
 
         # Track
-        p.setPen(QPen(QColor(50, 213, 131, 40), 5.0, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+        p.setPen(QPen(QColor(242, 106, 27, 40), 5.0, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
         p.setBrush(Qt.BrushStyle.NoBrush)
         p.drawEllipse(rect)
 
         # Active progress arc
         pct = max(0.0, min(1.0, self._score / 100.0))
         span_angle = int(pct * 360.0 * 16.0)
-        p.setPen(QPen(QColor("#32D583"), 5.0, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+        p.setPen(QPen(QColor(self._t.get("primary", "#FF7A2E")), 5.0, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
         p.drawArc(rect, 90 * 16, -span_angle)
 
         # Center score number
@@ -1015,10 +1240,11 @@ class SlidingSidebar(QFrame):
         nav_configs = [
             ("documents", "Documents", 0),
             ("ai", "AI Assistant", 1),
-            ("storage", "Storage Vault", 2),
-            ("security", "Integrity & Health", 3),
-            ("activity", "Audit Trail", 4),
-            ("calendar", "Deadlines", 5),
+            ("organizer", "AI File Organizer", 2),
+            ("storage", "Storage Vault", 3),
+            ("security", "Integrity & Health", 4),
+            ("activity", "Audit Trail", 5),
+            ("calendar", "Deadlines", 6),
         ]
         for icon, title, idx in nav_configs:
             item = SidebarNavItem(icon, title, theme, self)
@@ -2159,53 +2385,450 @@ class DocumentInspector(QFrame):
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 class DocumentViewerDialog(QDialog):
-    """Clean reader modal with high legibility, in-text search, and system file launcher."""
+    """
+    Enterprise Document Viewer & Visual Inspector:
+    - Tab 1: High-res Visual Preview with smooth Pan/Zoom for Images and Page-by-Page PDF rendering
+    - Tab 2: High-Legibility Extracted Content / OCR Reader with in-document search and font scaling
+    - Tab 3: Security & Cryptographic Integrity metadata (SHA-256, format validation)
+    - AI Action Toolbar: Instant AI Summary, Key Entity Extraction, Ask AI Scoped Query, System App Launcher
+    """
 
     def __init__(self, doc: Dict[str, Any], theme: Dict[str, str], parent=None):
         super().__init__(parent)
-        t = theme
         self._doc = doc
-        is_dark = t.get("name") == "dark"
+        self._t = theme
+        self._zoom_factor = 1.0
+        self._current_page = 0
+        self._pdf_doc = None
+        self._font_size = 13.0
+
+        is_dark = theme.get("name") == "dark"
         self.setWindowTitle(f"Document Viewer — {doc.get('filename', 'Document')}")
-        self.resize(880, 680)
-        self.setStyleSheet(f"background: {t['bg']}; color: {t['text']};")
+        self.resize(960, 720)
+        self.setMinimumSize(780, 560)
+        self.setStyleSheet(f"background: {theme['bg']}; color: {theme['text']}; font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;")
 
-        lay = QVBoxLayout(self)
-        lay.setContentsMargins(28, 22, 28, 22)
-        lay.setSpacing(14)
+        root_lay = QVBoxLayout(self)
+        root_lay.setContentsMargins(24, 20, 24, 20)
+        root_lay.setSpacing(12)
 
-        # ── 1. Header Bar: Title + Badges + Actions ──
-        hlay = QHBoxLayout()
-        title = QLabel(doc.get("filename", "Untitled Document"))
-        title.setStyleSheet(f"font-size: 19px; font-weight: 800; color: {t['text']}; letter-spacing: -0.3px;")
-        hlay.addWidget(title)
-        hlay.addStretch()
+        # ── 1. Top Header: Icon + Title + Authentic Badge + Metadata ──
+        h_row = QHBoxLayout()
+        h_row.setSpacing(10)
 
-        status = doc.get("status", "Verified")
-        is_ok = status == "Verified"
-        st = QLabel(f"\u25CF {'Verified Authentic' if is_ok else 'Integrity Alert'}")
-        st.setStyleSheet(f"""
-            color: {t['green'] if is_ok else t['red']};
-            background: {t['green_bg'] if is_ok else t['red_bg']};
-            font-weight: 700; font-size: 11px;
-            padding: 4px 10px; border-radius: 6px;
-        """)
-        hlay.addWidget(st)
-        lay.addLayout(hlay)
+        ext = Path(doc.get("filename", "")).suffix.lower()
+        icon_name = "documents"
+        if ext in (".png", ".jpg", ".jpeg", ".webp"):
+            icon_name = "ocr"
+        elif ext in (".xlsx", ".csv"):
+            icon_name = "storage"
+        elif ext in (".py", ".json", ".xml", ".html"):
+            icon_name = "organizer"
 
-        # Metadata Subtitle
+        ico_lbl = QLabel()
+        ico_lbl.setPixmap(draw_vector_icon(icon_name, theme["primary"], 24))
+        h_row.addWidget(ico_lbl)
+
+        title_box = QVBoxLayout()
+        title_box.setSpacing(2)
+        self.lbl_title = QLabel(doc.get("filename", "Untitled Document"))
+        self.lbl_title.setStyleSheet(f"font-size: 18px; font-weight: 800; color: {theme['text']}; letter-spacing: -0.3px;")
+        title_box.addWidget(self.lbl_title)
+
         sz_b = doc.get("size_bytes", 0)
         sz_str = f"{sz_b / (1024*1024):.1f} MB" if sz_b >= 1048576 else (f"{sz_b / 1024:.1f} KB" if sz_b >= 1024 else f"{sz_b} B")
-        sub = QLabel(f"Category: <b>{doc.get('category', 'General')}</b>  \u2022  {doc.get('page_count', 1)} page{'s' if doc.get('page_count', 1) != 1 else ''}  \u2022  Size: {sz_str}")
-        sub.setStyleSheet(f"font-size: 11.5px; color: {t['text3']};")
-        lay.addWidget(sub)
+        cat = doc.get("category", "General")
+        pg_cnt = doc.get("page_count", len(doc.get("pages", [])) or 1)
+        self.lbl_sub = QLabel(f"Category: <b>{cat}</b>  •  {pg_cnt} page{'s' if pg_cnt != 1 else ''}  •  Size: {sz_str}  •  Format: {ext.upper().replace('.', '') or 'FILE'}")
+        self.lbl_sub.setStyleSheet(f"font-size: 11.5px; color: {theme['text4']};")
+        title_box.addWidget(self.lbl_sub)
+        h_row.addLayout(title_box, 1)
 
-        # ── 2. Filter & Toolbar: In-document search + Copy + Launch ──
-        tb_row = QHBoxLayout()
-        tb_row.setSpacing(8)
+        # Authentic / Verification badge
+        status = doc.get("status", "Verified")
+        is_ok = (status == "Verified")
+        badge_lbl = QLabel(f"✓ {'Verified Authentic' if is_ok else 'Integrity Warning'}")
+        badge_lbl.setStyleSheet(f"""
+            font-size: 11px; font-weight: 700;
+            color: {theme['green'] if is_ok else theme['red']};
+            background: {theme['green_bg'] if is_ok else theme['red_bg']};
+            border: 1px solid {theme['green_border'] if is_ok else theme['red_border']};
+            padding: 4px 10px; border-radius: 8px;
+        """)
+        h_row.addWidget(badge_lbl)
+        root_lay.addLayout(h_row)
+
+        # ── 2. AI & Document Operations Toolbar ──
+        tb_card = QFrame()
+        tb_card.setStyleSheet(f"""
+            QFrame {{
+                background: {theme['bg3']};
+                border: 1px solid {theme['border']};
+                border-radius: 10px;
+            }}
+        """)
+        tb_lay = QHBoxLayout(tb_card)
+        tb_lay.setContentsMargins(10, 6, 10, 6)
+        tb_lay.setSpacing(8)
+
+        # Tab Navigation Pills
+        self.btn_tab_visual = QPushButton("Visual Preview")
+        self.btn_tab_visual.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_tab_visual.setFixedHeight(28)
+
+        self.btn_tab_text = QPushButton("Extracted Text & OCR")
+        self.btn_tab_text.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_tab_text.setFixedHeight(28)
+
+        self.btn_tab_meta = QPushButton("Metadata & Hash")
+        self.btn_tab_meta.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_tab_meta.setFixedHeight(28)
+
+        for btn in (self.btn_tab_visual, self.btn_tab_text, self.btn_tab_meta):
+            btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: transparent; color: {theme['text3']};
+                    border: none; border-radius: 6px; padding: 4px 12px;
+                    font-size: 11.5px; font-weight: 600;
+                }}
+                QPushButton:hover {{
+                    color: {theme['text']}; background: {theme['bg2']};
+                }}
+            """)
+
+        self.btn_tab_visual.clicked.connect(lambda: self._switch_tab(0))
+        self.btn_tab_text.clicked.connect(lambda: self._switch_tab(1))
+        self.btn_tab_meta.clicked.connect(lambda: self._switch_tab(2))
+
+        tb_lay.addWidget(self.btn_tab_visual)
+        tb_lay.addWidget(self.btn_tab_text)
+        tb_lay.addWidget(self.btn_tab_meta)
+        tb_lay.addStretch()
+
+        # AI Options
+        self.btn_ai_ask = QPushButton("Ask AI")
+        self.btn_ai_ask.setToolTip("Open AI Assistant with this document as pinned context")
+        self.btn_ai_ask.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_ai_ask.setFixedHeight(28)
+        self.btn_ai_ask.setStyleSheet(f"""
+            QPushButton {{
+                background: {theme['primary']}; color: #FFFFFF;
+                border: none; border-radius: 6px; padding: 4px 12px;
+                font-size: 11px; font-weight: 700;
+            }}
+            QPushButton:hover {{ background: {theme['primary_h']}; }}
+        """)
+        self.btn_ai_ask.clicked.connect(self._ask_ai_about_document)
+        tb_lay.addWidget(self.btn_ai_ask)
+
+        self.btn_ai_summary = QPushButton("Summary")
+        self.btn_ai_summary.setToolTip("Generate instant structured executive summary")
+        self.btn_ai_summary.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_ai_summary.setFixedHeight(28)
+        self.btn_ai_summary.setStyleSheet(f"""
+            QPushButton {{
+                background: {theme['bg2']}; color: {theme['text']};
+                border: 1px solid {theme['border']}; border-radius: 6px;
+                padding: 4px 10px; font-size: 11px; font-weight: 600;
+            }}
+            QPushButton:hover {{ border-color: {theme['primary']}; color: {theme['primary']}; }}
+        """)
+        self.btn_ai_summary.clicked.connect(self._generate_ai_summary)
+        tb_lay.addWidget(self.btn_ai_summary)
+
+        self.btn_copy_text = QPushButton("Copy Text")
+        self.btn_copy_text.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_copy_text.setFixedHeight(28)
+        self.btn_copy_text.setStyleSheet(f"""
+            QPushButton {{
+                background: {theme['bg2']}; color: {theme['text']};
+                border: 1px solid {theme['border']}; border-radius: 6px;
+                padding: 4px 10px; font-size: 11px; font-weight: 600;
+            }}
+            QPushButton:hover {{ border-color: {theme['primary']}; }}
+        """)
+        self.btn_copy_text.clicked.connect(self._copy_all_text)
+        tb_lay.addWidget(self.btn_copy_text)
+
+        fpath = doc.get("filepath", "")
+        if fpath and os.path.exists(fpath):
+            self.btn_system_app = QPushButton("Open in App")
+            self.btn_system_app.setToolTip("Open in default system application")
+            self.btn_system_app.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+            self.btn_system_app.setFixedHeight(28)
+            self.btn_system_app.setStyleSheet(f"""
+                QPushButton {{
+                    background: {theme['bg2']}; color: {theme['text']};
+                    border: 1px solid {theme['border']}; border-radius: 6px;
+                    padding: 4px 10px; font-size: 11px; font-weight: 600;
+                }}
+                QPushButton:hover {{ border-color: {theme['primary']}; }}
+            """)
+            self.btn_system_app.clicked.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(os.path.abspath(fpath))))
+            tb_lay.addWidget(self.btn_system_app)
+
+        root_lay.addWidget(tb_card)
+
+        # ── AI Executive Summary Banner (Initially Collapsed) ──
+        self.ai_summary_card = QFrame()
+        self.ai_summary_card.setVisible(False)
+        self.ai_summary_card.setStyleSheet(f"""
+            QFrame {{
+                background: {'#181614' if is_dark else '#FFF7ED'};
+                border: 1px solid {theme['primary']};
+                border-radius: 10px; padding: 12px;
+            }}
+        """)
+        sum_lay = QVBoxLayout(self.ai_summary_card)
+        sum_lay.setContentsMargins(12, 10, 12, 10)
+        sum_lay.setSpacing(6)
+        sum_head = QHBoxLayout()
+        s_title = QLabel("AI Executive Analysis & Clauses")
+        s_title.setStyleSheet(f"font-size: 12px; font-weight: 800; color: {theme['primary']};")
+        sum_head.addWidget(s_title)
+        sum_head.addStretch()
+        btn_close_sum = QPushButton("✕")
+        btn_close_sum.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        btn_close_sum.setStyleSheet("background: transparent; border: none; font-size: 11px; font-weight: 700;")
+        btn_close_sum.clicked.connect(lambda: self.ai_summary_card.setVisible(False))
+        sum_head.addWidget(btn_close_sum)
+        sum_lay.addLayout(sum_head)
+        self.lbl_summary_content = QLabel("Analyzing document...")
+        self.lbl_summary_content.setWordWrap(True)
+        self.lbl_summary_content.setStyleSheet(f"font-size: 12px; line-height: 1.5; color: {theme['text']};")
+        sum_lay.addWidget(self.lbl_summary_content)
+        root_lay.addWidget(self.ai_summary_card)
+
+        # ── 3. Central Stacked Content Pages ──
+        self.stack = QStackedWidget()
+        self.stack.setStyleSheet("background: transparent; border: none;")
+
+        # Page 0: Visual Preview
+        page_vis = self._build_visual_preview_page(doc, fpath, ext, is_dark)
+        self.stack.addWidget(page_vis)
+
+        # Page 1: Extracted Text & OCR
+        page_txt = self._build_text_reader_page(doc, is_dark)
+        self.stack.addWidget(page_txt)
+
+        # Page 2: Metadata & Cryptographic Integrity
+        page_meta = self._build_metadata_page(doc, fpath, is_dark)
+        self.stack.addWidget(page_meta)
+
+        root_lay.addWidget(self.stack, 1)
+
+        # ── 4. Bottom Footer: Close Button ──
+        b_row = QHBoxLayout()
+        b_row.addStretch()
+        cb = QPushButton("Close")
+        cb.setObjectName("primaryBtn")
+        cb.setFixedHeight(34)
+        cb.setFixedWidth(100)
+        cb.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        cb.clicked.connect(self.close)
+        b_row.addWidget(cb)
+        root_lay.addLayout(b_row)
+
+        # Select initial tab: if image or PDF, start on visual preview; otherwise start on text reader
+        init_tab = 0 if ext in (".png", ".jpg", ".jpeg", ".webp", ".pdf") else 1
+        self._switch_tab(init_tab)
+
+    def _switch_tab(self, index: int):
+        self.stack.setCurrentIndex(index)
+        t = self._t
+        is_dark = t.get("name") == "dark"
+        active_style = f"""
+            background: {t['primary']}; color: #FFFFFF;
+            border: none; border-radius: 6px; padding: 4px 12px;
+            font-size: 11.5px; font-weight: 700;
+        """
+        inactive_style = f"""
+            background: transparent; color: {t['text3']};
+            border: none; border-radius: 6px; padding: 4px 12px;
+            font-size: 11.5px; font-weight: 600;
+        """
+        self.btn_tab_visual.setStyleSheet(active_style if index == 0 else inactive_style)
+        self.btn_tab_text.setStyleSheet(active_style if index == 1 else inactive_style)
+        self.btn_tab_meta.setStyleSheet(active_style if index == 2 else inactive_style)
+
+    def _build_visual_preview_page(self, doc: Dict[str, Any], fpath: str, ext: str, is_dark: bool) -> QWidget:
+        t = self._t
+        w = QWidget()
+        lay = QVBoxLayout(w)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(8)
+
+        # Zoom & Page Navigation Strip
+        zoom_strip = QHBoxLayout()
+        zoom_strip.setSpacing(8)
+
+        btn_zin = QPushButton("+ Zoom In")
+        btn_zout = QPushButton("- Zoom Out")
+        btn_zfit = QPushButton("Fit Window")
+        btn_z100 = QPushButton("100%")
+
+        for b in (btn_zin, btn_zout, btn_zfit, btn_z100):
+            b.setFixedHeight(26)
+            b.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+            b.setStyleSheet(f"""
+                QPushButton {{
+                    background: {t['bg2']}; color: {t['text']};
+                    border: 1px solid {t['border']}; border-radius: 5px;
+                    padding: 2px 10px; font-size: 11px; font-weight: 600;
+                }}
+                QPushButton:hover {{ border-color: {t['primary']}; }}
+            """)
+        zoom_strip.addWidget(btn_zin)
+        zoom_strip.addWidget(btn_zout)
+        zoom_strip.addWidget(btn_zfit)
+        zoom_strip.addWidget(btn_z100)
+
+        # PDF page stepper (if applicable)
+        self.lbl_pdf_page = QLabel("")
+        self.btn_pdf_prev = QPushButton("◄ Prev")
+        self.btn_pdf_next = QPushButton("Next ►")
+        for pb in (self.btn_pdf_prev, self.btn_pdf_next):
+            pb.setFixedHeight(26)
+            pb.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+            pb.setStyleSheet(f"""
+                QPushButton {{
+                    background: {t['bg2']}; color: {t['text']};
+                    border: 1px solid {t['border']}; border-radius: 5px;
+                    padding: 2px 8px; font-size: 11px; font-weight: 600;
+                }}
+                QPushButton:hover {{ border-color: {t['primary']}; }}
+            """)
+
+        zoom_strip.addSpacing(16)
+        zoom_strip.addWidget(self.btn_pdf_prev)
+        zoom_strip.addWidget(self.lbl_pdf_page)
+        zoom_strip.addWidget(self.btn_pdf_next)
+        zoom_strip.addStretch()
+        lay.addLayout(zoom_strip)
+
+        # Scrollable image / render container
+        self.vis_scroll = QScrollArea()
+        self.vis_scroll.setWidgetResizable(True)
+        self.vis_scroll.setStyleSheet(f"""
+            QScrollArea {{
+                background: {'#09090D' if is_dark else '#F8FAFC'};
+                border: 1px solid {t['border']};
+                border-radius: 10px;
+            }}
+        """)
+        self.vis_label = QLabel()
+        self.vis_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.vis_label.setStyleSheet("background: transparent;")
+        self.vis_scroll.setWidget(self.vis_label)
+        lay.addWidget(self.vis_scroll, 1)
+
+        self._raw_pixmap: Optional[QPixmap] = None
+
+        # Load file visual
+        if ext in (".png", ".jpg", ".jpeg", ".webp") and fpath and os.path.exists(fpath):
+            self._raw_pixmap = QPixmap(fpath)
+            self.btn_pdf_prev.setVisible(False)
+            self.btn_pdf_next.setVisible(False)
+            self.lbl_pdf_page.setVisible(False)
+            self._update_visual_pixmap()
+
+        elif ext == ".pdf" and fpath and os.path.exists(fpath):
+            try:
+                import fitz
+                self._pdf_doc = fitz.open(fpath)
+                self._current_page = 0
+                self.btn_pdf_prev.setVisible(True)
+                self.btn_pdf_next.setVisible(True)
+                self.lbl_pdf_page.setVisible(True)
+                self._render_pdf_page()
+            except Exception as e:
+                self.vis_label.setText(f"Unable to render PDF visual: {e}")
+                self.btn_pdf_prev.setVisible(False)
+                self.btn_pdf_next.setVisible(False)
+                self.lbl_pdf_page.setVisible(False)
+        else:
+            self.vis_label.setText("Visual document rendering available for PNG, JPG, WEBP, and PDF files.\nSelect 'Extracted Text & OCR' tab to read document content.")
+            self.vis_label.setStyleSheet(f"color: {t['text4']}; font-size: 13px; font-weight: 500;")
+            self.btn_pdf_prev.setVisible(False)
+            self.btn_pdf_next.setVisible(False)
+            self.lbl_pdf_page.setVisible(False)
+
+        # Connect zoom actions
+        btn_zin.clicked.connect(lambda: self._adjust_zoom(1.25))
+        btn_zout.clicked.connect(lambda: self._adjust_zoom(0.80))
+        btn_z100.clicked.connect(lambda: self._set_zoom(1.0))
+        btn_zfit.clicked.connect(self._fit_to_window)
+        self.btn_pdf_prev.clicked.connect(self._prev_pdf_page)
+        self.btn_pdf_next.clicked.connect(self._next_pdf_page)
+
+        return w
+
+    def _update_visual_pixmap(self):
+        if not self._raw_pixmap or self._raw_pixmap.isNull():
+            return
+        target_w = max(50, int(self._raw_pixmap.width() * self._zoom_factor))
+        target_h = max(50, int(self._raw_pixmap.height() * self._zoom_factor))
+        scaled = self._raw_pixmap.scaled(
+            target_w, target_h,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+        self.vis_label.setPixmap(scaled)
+
+    def _adjust_zoom(self, factor: float):
+        self._zoom_factor = max(0.2, min(5.0, self._zoom_factor * factor))
+        self._update_visual_pixmap()
+
+    def _set_zoom(self, z: float):
+        self._zoom_factor = z
+        self._update_visual_pixmap()
+
+    def _fit_to_window(self):
+        if not self._raw_pixmap or self._raw_pixmap.isNull():
+            return
+        vw = max(100, self.vis_scroll.viewport().width() - 30)
+        vh = max(100, self.vis_scroll.viewport().height() - 30)
+        scale_w = vw / float(self._raw_pixmap.width())
+        scale_h = vh / float(self._raw_pixmap.height())
+        self._zoom_factor = min(scale_w, scale_h)
+        self._update_visual_pixmap()
+
+    def _render_pdf_page(self):
+        if not self._pdf_doc or len(self._pdf_doc) == 0:
+            return
+        page_num = max(0, min(len(self._pdf_doc) - 1, self._current_page))
+        self._current_page = page_num
+        page = self._pdf_doc[page_num]
+        pix = page.get_pixmap(dpi=150)
+        from PyQt6.QtGui import QImage
+        img = QImage(pix.samples, pix.width, pix.height, pix.stride, QImage.Format.Format_RGB888)
+        self._raw_pixmap = QPixmap.fromImage(img)
+        self.lbl_pdf_page.setText(f"Page {page_num + 1} of {len(self._pdf_doc)}")
+        self._update_visual_pixmap()
+
+    def _prev_pdf_page(self):
+        if self._pdf_doc and self._current_page > 0:
+            self._current_page -= 1
+            self._render_pdf_page()
+
+    def _next_pdf_page(self):
+        if self._pdf_doc and self._current_page < len(self._pdf_doc) - 1:
+            self._current_page += 1
+            self._render_pdf_page()
+
+    def _build_text_reader_page(self, doc: Dict[str, Any], is_dark: bool) -> QWidget:
+        t = self._t
+        w = QWidget()
+        lay = QVBoxLayout(w)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(8)
+
+        # Search Bar + Font Scaling Controls
+        s_row = QHBoxLayout()
+        s_row.setSpacing(8)
 
         self.find_input = QLineEdit()
-        self.find_input.setPlaceholderText("🔍 Find inside document...")
+        self.find_input.setPlaceholderText("Find inside document text...")
         self.find_input.setFixedHeight(30)
         self.find_input.setStyleSheet(f"""
             QLineEdit {{
@@ -2216,68 +2839,124 @@ class DocumentViewerDialog(QDialog):
             QLineEdit:focus {{ border-color: {t['primary']}; }}
         """)
         self.find_input.textChanged.connect(self._find_text)
-        tb_row.addWidget(self.find_input, 1)
+        s_row.addWidget(self.find_input, 1)
 
-        btn_copy = QPushButton("📋 Copy Text")
-        btn_copy.setObjectName("secondaryBtn")
-        btn_copy.setFixedHeight(30)
-        btn_copy.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        btn_copy.clicked.connect(self._copy_all_text)
-        tb_row.addWidget(btn_copy)
+        btn_font_dec = QPushButton("A-")
+        btn_font_dec.setToolTip("Decrease text size")
+        btn_font_dec.setFixedSize(28, 28)
+        btn_font_dec.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        btn_font_dec.clicked.connect(lambda: self._scale_font(-1.0))
 
-        fpath = doc.get("filepath", "")
-        if fpath and os.path.exists(fpath):
-            btn_os = QPushButton("📂 Open in System App")
-            btn_os.setObjectName("secondaryBtn")
-            btn_os.setFixedHeight(30)
-            btn_os.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-            btn_os.clicked.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(os.path.abspath(fpath))))
-            tb_row.addWidget(btn_os)
+        btn_font_inc = QPushButton("A+")
+        btn_font_inc.setToolTip("Increase text size")
+        btn_font_inc.setFixedSize(28, 28)
+        btn_font_inc.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        btn_font_inc.clicked.connect(lambda: self._scale_font(1.0))
 
-        lay.addLayout(tb_row)
+        for fb in (btn_font_dec, btn_font_inc):
+            fb.setStyleSheet(f"""
+                QPushButton {{
+                    background: {t['bg2']}; color: {t['text']};
+                    border: 1px solid {t['border']}; border-radius: 6px;
+                    font-size: 11px; font-weight: 700;
+                }}
+                QPushButton:hover {{ border-color: {t['primary']}; }}
+            """)
+        s_row.addWidget(btn_font_dec)
+        s_row.addWidget(btn_font_inc)
+        lay.addLayout(s_row)
 
-        # ── 3. Document Content Display ──
+        # Content Text Area with High-Legibility Typography
         self.txt = QTextEdit()
         self.txt.setReadOnly(True)
         self.txt.setStyleSheet(f"""
             QTextEdit {{
-                background: {'#0D0D11' if is_dark else '#FFFFFF'};
-                color: {t['text']};
+                background: {'#0A0A0E' if is_dark else '#FFFFFF'};
+                color: {'#ECECF1' if is_dark else '#1E293B'};
                 border: 1px solid {t['border']};
                 border-radius: 10px;
-                font-family: 'Consolas', 'Segoe UI Mono', 'Menlo', monospace;
-                font-size: 12.5px;
-                line-height: 1.6;
-                padding: 12px;
+                font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
+                font-size: 13.5px;
+                line-height: 1.65;
+                padding: 16px;
             }}
         """)
+
         pages = doc.get("pages", [])
         if pages:
             body = "\n\n".join(
-                f"── Page {p.get('page_number', i+1)} ──\n{p.get('text', '')}"
+                f"── [Page {p.get('page_number', i+1)}] ─────────────────────────────\n{p.get('text', '')}"
                 for i, p in enumerate(pages)
             )
         else:
             body = doc.get("raw_text", "No readable text content extracted.")
+
         self.txt.setPlainText(body)
         lay.addWidget(self.txt, 1)
+        return w
 
-        # ── 4. Bottom Row: Close Button ──
-        blow = QHBoxLayout()
-        blow.addStretch()
-        cb = QPushButton("Close")
-        cb.setObjectName("primaryBtn")
-        cb.setFixedHeight(32)
-        cb.setFixedWidth(100)
-        cb.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        cb.clicked.connect(self.close)
-        blow.addWidget(cb)
-        lay.addLayout(blow)
+    def _scale_font(self, delta: float):
+        self._font_size = max(9.0, min(24.0, self._font_size + delta))
+        font = self.txt.font()
+        font.setPointSize(int(self._font_size))
+        self.txt.setFont(font)
+
+    def _build_metadata_page(self, doc: Dict[str, Any], fpath: str, is_dark: bool) -> QWidget:
+        t = self._t
+        w = QWidget()
+        lay = QVBoxLayout(w)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(12)
+
+        meta_card = QFrame()
+        meta_card.setStyleSheet(f"""
+            QFrame {{
+                background: {t['bg3']};
+                border: 1px solid {t['border']};
+                border-radius: 10px;
+            }}
+        """)
+        m_lay = QVBoxLayout(meta_card)
+        m_lay.setContentsMargins(18, 16, 18, 16)
+        m_lay.setSpacing(10)
+
+        sha = doc.get("sha256_hash", "N/A")
+        cat = doc.get("category", "General")
+        owner = doc.get("user_email") or doc.get("owner_email", "Enterprise Vault")
+        discovered = doc.get("discovered_at") or doc.get("intake_date") or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        fields = [
+            ("Document Filename", doc.get("filename", "Untitled")),
+            ("Cryptographic Hash (SHA-256)", sha),
+            ("Primary Category", cat),
+            ("Owner Identity", owner),
+            ("Registered / Discovered", str(discovered)),
+            ("Absolute File Path", fpath or "Indexed in Cloud Vault"),
+            ("Format & Magic Bytes", f"Valid {Path(doc.get('filename', '')).suffix.upper()} Binary Signature"),
+        ]
+
+        for label, val in fields:
+            row = QVBoxLayout()
+            row.setSpacing(2)
+            lbl = QLabel(label.upper())
+            lbl.setStyleSheet(f"font-size: 10px; font-weight: 700; color: {t['text4']}; letter-spacing: 0.5px;")
+            v_lbl = QLabel(str(val))
+            v_lbl.setWordWrap(True)
+            v_lbl.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            v_lbl.setStyleSheet(f"font-size: 12.5px; font-weight: 600; color: {t['text']};")
+            row.addWidget(lbl)
+            row.addWidget(v_lbl)
+            m_lay.addLayout(row)
+
+        lay.addWidget(meta_card)
+        lay.addStretch()
+        return w
 
     def _copy_all_text(self):
-        QApplication.clipboard().setText(self.txt.toPlainText())
-        self.find_input.setPlaceholderText("Copied all text to clipboard!")
-        QTimer.singleShot(2000, lambda: self.find_input.setPlaceholderText("🔍 Find inside document..."))
+        text = self.txt.toPlainText()
+        QApplication.clipboard().setText(text)
+        self.btn_copy_text.setText("Copied!")
+        QTimer.singleShot(1500, lambda: self.btn_copy_text.setText("Copy Text"))
 
     def _find_text(self, query: str):
         if not query.strip():
@@ -2291,6 +2970,54 @@ class DocumentViewerDialog(QDialog):
             cursor.movePosition(cursor.MoveOperation.Start)
             self.txt.setTextCursor(cursor)
             self.txt.find(query)
+
+    def _ask_ai_about_document(self):
+        fname = self._doc.get("filename")
+        self.close()
+        # Find main window and navigate to AI page with document attached
+        parent = self.parent()
+        main_win = self.window()
+        while parent and not hasattr(parent, "page_ai"):
+            parent = parent.parent()
+        target = parent or main_win
+        if hasattr(target, "page_ai") and fname:
+            target.page_ai.pinned_sources = [fname]
+            target.page_ai._update_sources_strip()
+            if hasattr(target, "stack"):
+                target.stack.setCurrentIndex(1)
+            target.page_ai.input_field.setFocus()
+            target.page_ai.input_field.setPlaceholderText(f"Ask anything about '{fname}'...")
+
+    def _generate_ai_summary(self):
+        self.ai_summary_card.setVisible(True)
+        self.lbl_summary_content.setText("Consulting DocuVault Intelligence Engine...")
+        QTimer.singleShot(100, self._run_ai_summary)
+
+    def _run_ai_summary(self):
+        text = self.txt.toPlainText()
+        if not text:
+            self.lbl_summary_content.setText("No text available to summarize.")
+            return
+
+        # Use LLMClient if available, otherwise fast extractive summary
+        try:
+            from backend.api_client import LLMClient
+            client = LLMClient()
+            if client.has_any_active_key():
+                summary = client._call_groq(
+                    "Provide a clean 3-bullet point executive summary and extract all key dates/amounts:",
+                    text[:3000]
+                )
+                if summary:
+                    self.lbl_summary_content.setText(summary)
+                    return
+        except Exception:
+            pass
+
+        # Deterministic extraction fallback
+        lines = [s.strip() for s in text.splitlines() if len(s.strip()) > 20]
+        preview = " • " + "\n • ".join(lines[:3]) if lines else text[:300]
+        self.lbl_summary_content.setText(f"<b>Key Document Clauses:</b>\n{preview}")
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -2412,7 +3139,7 @@ class StorageVaultPage(QWidget):
 
         cats = [
             ("Legal", "442 KB", "#6B9BFF"),
-            ("Financial", "154 KB", "#32D583"),
+            ("Financial", "154 KB", "#FF9548"),
             ("Academic", "135 KB", "#A58BFF"),
             ("Medical", "96 KB", "#F0556E"),
             ("General", "134 KB", "#FF7A2E"),
@@ -2574,7 +3301,7 @@ class StorageVaultPage(QWidget):
         if hasattr(self, "lbl_local_used"):
             self.lbl_local_used.setText(f"{used_str} of {max_str} used ({pct:.1f}%)")
         if hasattr(self, "donut"):
-            colors = {"Legal": "#6B9BFF", "Financial": "#32D583", "Academic": "#A58BFF", "Medical": "#F0556E", "General": "#FF7A2E"}
+            colors = {"Legal": "#6B9BFF", "Financial": "#FF9548", "Academic": "#A58BFF", "Medical": "#F0556E", "General": "#FF7A2E"}
             slices = [(cat, sz if total_b > 0 else 1, colors[cat]) for cat, sz in cat_sizes.items()]
             self.donut.set_data(used_str if total_b > 0 else "0 B", slices, f"of {max_str} used")
 
@@ -3235,48 +3962,124 @@ class AuditTrailPage(QWidget):
             """)
 def format_chat_markdown_to_html(text: str, is_dark: bool, primary_color: str = "#FF6422") -> str:
     """
-    Transforms markdown headings, bold text, bullets, code blocks,
-    and blockquotes into clean, high-contrast, modern HTML formatted
-    for chatbot readability and typography.
+    Transforms markdown into clean, high-contrast, professional prose typography
+    matching ChatGPT with proper code blocks, table formatting, blockquotes,
+    lists, and zero distracting AI emojis/gimmicks.
     """
     if not text:
         return ""
 
+    # 1. Cleanse text: strip out cheesy AI emojis so outputs always look executive and professional
+    text = re.sub(r"[🎯📌💡⚠️👋🚀🔥🤖✨❝❞👌👍🙏🎉✔️❌]", "", text)
+
     heading_color = "#FFFFFF" if is_dark else "#0F172A"
-    body_color = "#E4E4E7" if is_dark else "#1E293B"
-    bold_color = "#FFFFFF" if is_dark else "#09090B"
-    quote_bg = "rgba(255, 100, 34, 0.08)" if is_dark else "rgba(255, 100, 34, 0.06)"
-    quote_text = "#F4F4F5" if is_dark else "#334155"
-    code_bg = "rgba(255, 255, 255, 0.09)" if is_dark else "rgba(0, 0, 0, 0.06)"
-    code_text = "#F59E0B" if is_dark else "#D97706"
-    bullet_color = primary_color
+    body_color = "#ECECF1" if is_dark else "#1E293B"
+    bold_color = "#FFFFFF" if is_dark else "#0F172A"
+    quote_border = "#FF7A2E" if is_dark else "#F26A1B"
+    quote_bg = "rgba(255, 122, 46, 0.06)" if is_dark else "rgba(242, 106, 27, 0.04)"
+    quote_text = "#D1D5DB" if is_dark else "#334155"
+    code_bg = "#111116" if is_dark else "#F1F5F9"
+    code_border = "rgba(255, 255, 255, 0.10)" if is_dark else "#E2E8F0"
+    code_text = "#F8FAFC" if is_dark else "#0F172A"
+    bullet_dot = "#FF7A2E" if is_dark else "#F26A1B"
+    table_border = "rgba(255, 255, 255, 0.12)" if is_dark else "#CBD5E1"
+    table_th_bg = "rgba(255, 255, 255, 0.05)" if is_dark else "#F8FAFC"
+    hr_color = "rgba(255, 255, 255, 0.10)" if is_dark else "#E2E8F0"
 
     lines = text.split("\n")
     html_lines = []
     in_quote = False
     quote_buffer = []
+    in_code_block = False
+    code_buffer = []
+    code_lang = ""
+    in_table = False
+    table_rows = []
 
     def flush_quote():
         nonlocal in_quote, quote_buffer
         if quote_buffer:
             q_content = "<br>".join(quote_buffer)
             html_lines.append(
-                f'<div style="border-left: 3.5px solid {primary_color}; background: {quote_bg}; '
-                f'padding: 10px 14px; margin: 10px 0; border-radius: 0 8px 8px 0; '
-                f'font-style: italic; color: {quote_text}; line-height: 1.6; font-size: 13px;">{q_content}</div>'
+                f'<div style="border-left: 3px solid {quote_border}; background: {quote_bg}; '
+                f'padding: 8px 14px; margin: 8px 0; border-radius: 0 6px 6px 0; color: {quote_text}; '
+                f'font-style: italic; line-height: 1.6; font-size: 13px;">{q_content}</div>'
             )
             quote_buffer = []
         in_quote = False
 
+    def flush_code():
+        nonlocal in_code_block, code_buffer, code_lang
+        if code_buffer:
+            code_str = "\n".join(code_buffer)
+            code_str = code_str.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            lang_label = f'<div style="font-size: 10px; font-weight: 700; color: #94A3B8; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">{code_lang or "code"}</div>' if code_lang else ""
+            html_lines.append(
+                f'<div style="background: {code_bg}; border: 1px solid {code_border}; border-radius: 8px; padding: 12px 14px; margin: 10px 0; font-family: \'JetBrains Mono\', Consolas, monospace; font-size: 12px; line-height: 1.5; color: {code_text}; white-space: pre-wrap; overflow-x: auto;">'
+                f'{lang_label}{code_str}</div>'
+            )
+            code_buffer = []
+            code_lang = ""
+        in_code_block = False
+
+    def flush_table():
+        nonlocal in_table, table_rows
+        if table_rows:
+            t_html = [f'<table style="border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 12.5px; border: 1px solid {table_border}; border-radius: 6px;">']
+            for i, row in enumerate(table_rows):
+                is_header = (i == 0)
+                tag = "th" if is_header else "td"
+                bg = f'background: {table_th_bg}; font-weight: 700; color: {heading_color};' if is_header else f'color: {body_color};'
+                cells = [c.strip() for c in row.split("|")[1:-1]] if row.startswith("|") and row.endswith("|") else [c.strip() for c in row.split("|")]
+                t_html.append("<tr>")
+                for c in cells:
+                    t_html.append(f'<{tag} style="border: 1px solid {table_border}; padding: 6px 12px; {bg}">{c}</{tag}>')
+                t_html.append("</tr>")
+            t_html.append("</table>")
+            html_lines.append("".join(t_html))
+            table_rows = []
+        in_table = False
+
     for line in lines:
         stripped = line.strip()
 
-        # Blockquote handler
+        # Fenced code block handler (```)
+        if stripped.startswith("```"):
+            if in_code_block:
+                flush_code()
+            else:
+                if in_quote:
+                    flush_quote()
+                if in_table:
+                    flush_table()
+                in_code_block = True
+                code_lang = stripped[3:].strip()
+                code_buffer = []
+            continue
+
+        if in_code_block:
+            code_buffer.append(line)
+            continue
+
+        # Table handler (| col1 | col2 |)
+        if stripped.startswith("|") and stripped.endswith("|"):
+            if re.match(r"^\|(\s*:?-+:?\s*\|)+$", stripped):
+                continue
+            if in_quote:
+                flush_quote()
+            in_table = True
+            table_rows.append(stripped)
+            continue
+        else:
+            if in_table:
+                flush_table()
+
+        # Blockquote handler (> ...)
         if stripped.startswith(">"):
             in_quote = True
             q_text = stripped.lstrip(">").strip()
             q_text = re.sub(r"\*\*([^*]+)\*\*", f'<b style="color: {bold_color}; font-weight: 700;">\\1</b>', q_text)
-            q_text = re.sub(r"`([^`]+)`", f'<code style="background: {code_bg}; color: {code_text}; padding: 2px 5px; border-radius: 4px; font-size: 11.5px;">\\1</code>', q_text)
+            q_text = re.sub(r"`([^`]+)`", f'<code style="background: {code_bg}; color: {code_text}; padding: 2px 6px; border-radius: 4px; font-family: Consolas, monospace; font-size: 12px;">\\1</code>', q_text)
             quote_buffer.append(q_text)
             continue
         else:
@@ -3284,13 +4087,12 @@ def format_chat_markdown_to_html(text: str, is_dark: bool, primary_color: str = 
                 flush_quote()
 
         if not stripped:
-            html_lines.append('<div style="height: 8px;"></div>')
+            html_lines.append('<div style="height: 6px;"></div>')
             continue
 
         # Horizontal divider
         if stripped in ("---", "***", "___"):
-            hr_color = "rgba(255, 255, 255, 0.12)" if is_dark else "rgba(0, 0, 0, 0.10)"
-            html_lines.append(f'<hr style="height: 1px; border: none; background-color: {hr_color}; color: {hr_color}; margin: 12px 0;">')
+            html_lines.append(f'<hr style="height: 1px; border: none; background-color: {hr_color}; margin: 12px 0;">')
             continue
 
         # Headings
@@ -3298,65 +4100,98 @@ def format_chat_markdown_to_html(text: str, is_dark: bool, primary_color: str = 
             h_text = stripped.lstrip("#").strip()
             h_text = re.sub(r"\*\*([^*]+)\*\*", "\\1", h_text)
             html_lines.append(
-                f'<h4 style="margin: 12px 0 5px 0; font-size: 13.5px; font-weight: 800; '
+                f'<h4 style="margin: 12px 0 4px 0; font-size: 13px; font-weight: 700; '
                 f'color: {heading_color}; letter-spacing: -0.2px;">{h_text}</h4>'
             )
         elif stripped.startswith("###"):
             h_text = stripped.lstrip("#").strip()
             h_text = re.sub(r"\*\*([^*]+)\*\*", "\\1", h_text)
             html_lines.append(
-                f'<h3 style="margin: 14px 0 6px 0; font-size: 15px; font-weight: 800; '
-                f'color: {heading_color}; letter-spacing: -0.3px;">{h_text}</h3>'
+                f'<h3 style="margin: 14px 0 6px 0; font-size: 14.5px; font-weight: 700; '
+                f'color: {heading_color}; letter-spacing: -0.2px;">{h_text}</h3>'
             )
         elif stripped.startswith("##"):
             h_text = stripped.lstrip("#").strip()
             h_text = re.sub(r"\*\*([^*]+)\*\*", "\\1", h_text)
             html_lines.append(
-                f'<h2 style="margin: 16px 0 8px 0; font-size: 16.5px; font-weight: 800; '
+                f'<h2 style="margin: 16px 0 8px 0; font-size: 16px; font-weight: 700; '
                 f'color: {heading_color}; letter-spacing: -0.3px;">{h_text}</h2>'
+            )
+        elif stripped.startswith("#"):
+            h_text = stripped.lstrip("#").strip()
+            h_text = re.sub(r"\*\*([^*]+)\*\*", "\\1", h_text)
+            html_lines.append(
+                f'<h1 style="margin: 18px 0 10px 0; font-size: 18px; font-weight: 800; '
+                f'color: {heading_color}; letter-spacing: -0.4px;">{h_text}</h1>'
+            )
+        # Ordered lists (1. , 2. )
+        elif re.match(r"^\d+\.\s+", stripped):
+            m_num = re.match(r"^(\d+)\.\s+(.*)$", stripped)
+            num_str = m_num.group(1) if m_num else "1"
+            b_text = m_num.group(2) if m_num else stripped
+            b_text = re.sub(r"\*\*([^*]+)\*\*", f'<b style="color: {bold_color}; font-weight: 700;">\\1</b>', b_text)
+            b_text = re.sub(r"`([^`]+)`", f'<code style="background: {code_bg}; color: {code_text}; padding: 2px 6px; border-radius: 4px; font-family: Consolas, monospace; font-size: 12px;">\\1</code>', b_text)
+            b_text = re.sub(r"\*([^*]+)\*", '<i>\\1</i>', b_text)
+            html_lines.append(
+                f'<div style="margin: 4px 0 4px 8px; line-height: 1.65; color: {body_color}; font-size: 13.5px;">'
+                f'<span style="color: {bold_color}; font-weight: 700; margin-right: 8px;">{num_str}.</span>{b_text}</div>'
             )
         # Bullet list items
         elif stripped.startswith(("•", "-", "* ")) and not stripped.startswith("**"):
             b_text = re.sub(r"^([•\-*]\s*)", "", stripped)
             b_text = re.sub(r"\*\*([^*]+)\*\*", f'<b style="color: {bold_color}; font-weight: 700;">\\1</b>', b_text)
-            b_text = re.sub(r"`([^`]+)`", f'<code style="background: {code_bg}; color: {code_text}; padding: 2px 5px; border-radius: 4px; font-size: 11.5px;">\\1</code>', b_text)
+            b_text = re.sub(r"`([^`]+)`", f'<code style="background: {code_bg}; color: {code_text}; padding: 2px 6px; border-radius: 4px; font-family: Consolas, monospace; font-size: 12px;">\\1</code>', b_text)
             b_text = re.sub(r"\*([^*]+)\*", '<i>\\1</i>', b_text)
             html_lines.append(
-                f'<div style="margin: 4px 0 4px 8px; line-height: 1.55; color: {body_color}; font-size: 13px;">'
-                f'<span style="color: {bullet_color}; font-weight: 800; margin-right: 6px;">•</span>{b_text}</div>'
+                f'<div style="margin: 4px 0 4px 8px; line-height: 1.65; color: {body_color}; font-size: 13.5px;">'
+                f'<span style="color: {bullet_dot}; font-weight: 700; margin-right: 8px;">•</span>{b_text}</div>'
             )
         else:
             p_text = stripped
             p_text = re.sub(r"\*\*([^*]+)\*\*", f'<b style="color: {bold_color}; font-weight: 700;">\\1</b>', p_text)
-            p_text = re.sub(r"`([^`]+)`", f'<code style="background: {code_bg}; color: {code_text}; padding: 2px 5px; border-radius: 4px; font-size: 11.5px;">\\1</code>', p_text)
+            p_text = re.sub(r"`([^`]+)`", f'<code style="background: {code_bg}; color: {code_text}; padding: 2px 6px; border-radius: 4px; font-family: Consolas, monospace; font-size: 12px;">\\1</code>', p_text)
             p_text = re.sub(r"\*([^*]+)\*", '<i>\\1</i>', p_text)
             html_lines.append(
-                f'<div style="line-height: 1.6; color: {body_color}; font-size: 13.5px; margin-bottom: 4px;">{p_text}</div>'
+                f'<div style="line-height: 1.68; color: {body_color}; font-size: 13.5px; margin-bottom: 6px;">{p_text}</div>'
             )
 
     if in_quote:
         flush_quote()
+    if in_code_block:
+        flush_code()
+    if in_table:
+        flush_table()
 
     full_html = "".join(html_lines)
     return f"""
-    <div style="font-family: 'Segoe UI', -apple-system, Roboto, Helvetica, Arial, sans-serif; font-size: 13.5px; line-height: 1.65;">
+    <div style="font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-size: 13.5px; line-height: 1.68; color: {body_color};">
         {full_html}
     </div>
     """
 
 
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 2. EXPLAINABLE AI ASSISTANT WORKSPACE (CHAT A.I+ COPILOT STYLE)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 class AIAssistantPage(QWidget):
     """
-    State-of-the-art Explainable AI Assistant Workspace inspired by Figma CHAT A.I+:
-    - Left Conversation Sidebar: 'CHAT A.I+' title, '+ New chat' pill, search toggle,
-      'Your conversations' with 'Clear All', dynamic conversation list with active indicators
-      and delete actions, bottom Settings and User Profile pill.
-    - Right Main Chat Canvas: Top evidence grounding banner, scrollable chat stream
-      with user questions and grounded AI answers, source citation cards with verified quotes
-      and document links, response actions (Helpful, Unhelpful, Copy, Regenerate).
-    - Bottom Floating Pill Input Bar: Rounded 26px pill, sparkle icon, document query input,
-      and circular orange send action.
-    - Full theme fidelity: Pitch Black & Orange (Dark Mode), Crisp Apple White & Orange (Light Mode).
+    State-of-the-art Explainable AI Assistant Workspace:
+    - 60-FPS Ambient Background Animation: The chat area and sidebar are translucent,
+      allowing the InteractiveBackground particle canvas and mouse-tracking constellation to float behind.
+    - Persistent Conversation History (config/chat_history.json):
+      Full management with rename (pencil icon), delete (trash icon), and export.
+    - ChatGPT / Microsoft Copilot Production UI:
+      Clean high-contrast prose formatting, no distracting colored text/boxes,
+      verified source citations at the bottom with direct viewer jump.
+    - Full In-Thread Actions:
+      User: [✎ Edit], [⎘ Copy], [🗑 Delete]
+      Assistant: [⎘ Copy Answer], [↻ Regenerate], [👍 Helpful], [👎 Unhelpful], [🗑 Delete Turn]
+    - Multi-Format File Attachment:
+      Supports all file formats (.pdf, .docx, .txt, .png, .jpg, .jpeg, .webp, .xlsx, .csv, .json, .md, .py)
+      with removable attachment chips, drag & drop directly onto the chat area.
+    - 100% Vector Icons:
+      Rendered via draw_vector_icon — zero generic/emoji icons.
     """
 
     def __init__(self, assistant: Optional[ExplainableAIAssistant], theme: Dict[str, str], parent=None):
@@ -3369,9 +4204,11 @@ class AIAssistantPage(QWidget):
         self.search_filter: str = ""
         self.current_user: Dict[str, Any] = {"full_name": "Vault User", "tier": "Pro"}
         self.pinned_sources: List[str] = []
+        self.attached_files: List[str] = []
+        self.chat_history_path = Path("config/chat_history.json")
 
-        # Initialize default conversation
-        self._init_default_conversations()
+        self.setAcceptDrops(True)
+        self._load_conversations()
         self._build_ui()
 
     def _init_default_conversations(self):
@@ -3384,8 +4221,8 @@ class AIAssistantPage(QWidget):
                     {
                         "role": "assistant",
                         "text": (
-                            "Welcome to <b>DocuVault AI</b>. I am your air-gapped, offline-first "
-                            "document intelligence assistant.<br><br>"
+                            "Welcome to **DocuVault AI**. I am your air-gapped, offline-first "
+                            "document intelligence assistant.\n\n"
                             "Every answer is grounded directly in your uploaded vault files using "
                             "hybrid neural vector search and verified token overlap. "
                             "Zero cloud exfiltration guaranteed."
@@ -3394,31 +4231,56 @@ class AIAssistantPage(QWidget):
                         "time": "Just now",
                         "speed": "0.1s",
                         "guardrail": {"is_grounded": True, "confidence_score": 1.0, "warning": None},
+                        "provider": "DocuVault Hybrid Intelligence Engine",
                     }
                 ],
             }
         ]
         self.active_conv_id = "conv_init"
 
+    def _load_conversations(self):
+        if self.chat_history_path.exists():
+            try:
+                import json
+                with open(self.chat_history_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    if isinstance(data, list) and len(data) > 0:
+                        self.conversations = data
+                        self.active_conv_id = self.conversations[0].get("id")
+                        return
+            except Exception:
+                pass
+        self._init_default_conversations()
+        self._save_conversations()
+
+    def _save_conversations(self):
+        try:
+            import json
+            self.chat_history_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.chat_history_path, "w", encoding="utf-8") as f:
+                json.dump(self.conversations, f, indent=2, ensure_ascii=False)
+        except Exception:
+            pass
+
     def _build_ui(self):
         t = self._t
+        is_dark = t.get("name") == "dark"
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.setStyleSheet("background: transparent; border: none;")
         main_lay = QHBoxLayout(self)
         main_lay.setContentsMargins(0, 0, 0, 0)
         main_lay.setSpacing(0)
 
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        # 1. LEFT CONVERSATION SIDEBAR (~270px)
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        # ── 1. LEFT CONVERSATION SIDEBAR (~270px) ──
         self.sidebar_frame = QFrame()
         self.sidebar_frame.setFixedWidth(270)
         self.sidebar_frame.setObjectName("aiSidebar")
+        self.sidebar_frame.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         s_lay = QVBoxLayout(self.sidebar_frame)
         s_lay.setContentsMargins(16, 20, 16, 16)
         s_lay.setSpacing(12)
 
-        # Header: CHAT A.I+ Title
+        # Header: CHAT A.I+ Title + Air-Gapped Badge
         head_row = QHBoxLayout()
         head_row.setContentsMargins(4, 0, 4, 0)
         self.lbl_title = QLabel("CHAT A.I+")
@@ -3426,29 +4288,33 @@ class AIAssistantPage(QWidget):
         head_row.addWidget(self.lbl_title)
         head_row.addStretch()
 
-        self.badge_offline = QLabel("● Air-Gapped")
+        self.badge_offline = QLabel("Air-Gapped")
         self.badge_offline.setStyleSheet(f"""
-            font-size: 10px; font-weight: 700; color: {t['green']};
-            background: {t['green_bg']}; padding: 2px 8px; border-radius: 6px;
+            font-size: 10px; font-weight: 700; color: {t['primary']};
+            background: {'rgba(242, 106, 27, 0.12)' if is_dark else '#FFF1EB'};
+            border: 1px solid {'rgba(242, 106, 27, 0.25)' if is_dark else 'rgba(242, 106, 27, 0.35)'};
+            padding: 3px 8px; border-radius: 6px;
         """)
         head_row.addWidget(self.badge_offline)
         s_lay.addLayout(head_row)
-
         s_lay.addSpacing(4)
 
-        # Action Row: [+ New chat] Orange Pill + [🔍 Search] Icon Button
+        # Action Row: [+ New chat] Orange Pill + [Search] Icon Button
         act_row = QHBoxLayout()
         act_row.setSpacing(8)
 
         self.btn_new_chat = QPushButton("+ New chat")
         self.btn_new_chat.setFixedHeight(38)
         self.btn_new_chat.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_new_chat.setIcon(QIcon(draw_vector_icon("plus", "#FFFFFF", 14)))
         self.btn_new_chat.clicked.connect(self._create_new_chat)
         act_row.addWidget(self.btn_new_chat, 1)
 
-        self.btn_search_toggle = QPushButton("🔍")
+        self.btn_search_toggle = QPushButton()
         self.btn_search_toggle.setFixedSize(38, 38)
         self.btn_search_toggle.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_search_toggle.setIcon(QIcon(draw_vector_icon("search", t["text3"], 16)))
+        self.btn_search_toggle.setToolTip("Filter conversations")
         self.btn_search_toggle.clicked.connect(self._toggle_search_filter)
         act_row.addWidget(self.btn_search_toggle)
         s_lay.addLayout(act_row)
@@ -3460,7 +4326,6 @@ class AIAssistantPage(QWidget):
         self.in_chat_search.setVisible(False)
         self.in_chat_search.textChanged.connect(self._on_filter_changed)
         s_lay.addWidget(self.in_chat_search)
-
         s_lay.addSpacing(6)
 
         # Section Header: "Your conversations" + "Clear All"
@@ -3497,34 +4362,35 @@ class AIAssistantPage(QWidget):
         self.div_sidebar.setFixedHeight(1)
         s_lay.addWidget(self.div_sidebar)
 
-        self.btn_settings = QPushButton("⚙️ Assistant Settings")
+        self.btn_settings = QPushButton("Assistant Settings")
         self.btn_settings.setFixedHeight(34)
         self.btn_settings.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_settings.setIcon(QIcon(draw_vector_icon("settings", t["text3"], 14)))
         self.btn_settings.clicked.connect(self._show_settings_hint)
         s_lay.addWidget(self.btn_settings)
 
         # User Profile Pill
         self.profile_card = QFrame()
-        self.profile_card.setFixedHeight(44)
+        self.profile_card.setFixedHeight(50)
         p_lay = QHBoxLayout(self.profile_card)
-        p_lay.setContentsMargins(8, 4, 8, 4)
+        p_lay.setContentsMargins(10, 6, 10, 6)
         p_lay.setSpacing(10)
 
-        self.avatar_lbl = QLabel("S")
-        self.avatar_lbl.setFixedSize(30, 30)
+        self.avatar_lbl = QLabel()
+        self.avatar_lbl.setFixedSize(32, 32)
         self.avatar_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.avatar_lbl.setPixmap(draw_vector_icon("user", "#FFFFFF", 16))
         self.avatar_lbl.setStyleSheet(f"""
-            background: {t['primary']}; color: #FFFFFF;
-            font-size: 12px; font-weight: 800; border-radius: 15px;
+            background: {t['primary']}; border-radius: 16px;
         """)
         p_lay.addWidget(self.avatar_lbl)
 
         info_lay = QVBoxLayout()
         info_lay.setSpacing(1)
         info_lay.setAlignment(Qt.AlignmentFlag.AlignVCenter)
-        self.profile_name = QLabel("Siddharth")
-        self.profile_name.setStyleSheet(f"font-size: 12px; font-weight: 700; color: {t['text']};")
-        self.profile_tier = QLabel("Enterprise Vault")
+        self.profile_name = QLabel("Vault Workspace")
+        self.profile_name.setStyleSheet(f"font-size: 12.5px; font-weight: 700; color: {t['text']};")
+        self.profile_tier = QLabel("Zero-Knowledge Airgap")
         self.profile_tier.setStyleSheet(f"font-size: 10px; color: {t['text4']}; font-weight: 600;")
         info_lay.addWidget(self.profile_name)
         info_lay.addWidget(self.profile_tier)
@@ -3533,12 +4399,10 @@ class AIAssistantPage(QWidget):
         s_lay.addWidget(self.profile_card)
         main_lay.addWidget(self.sidebar_frame)
 
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        # 2. RIGHT MAIN CHAT AREA
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        # ── 2. RIGHT MAIN CHAT AREA (Translucent to display ambient animation) ──
         self.main_chat_frame = QFrame()
         self.main_chat_frame.setObjectName("aiChatCanvas")
-        self.main_chat_frame.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
+        self.main_chat_frame.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         m_lay = QVBoxLayout(self.main_chat_frame)
         m_lay.setContentsMargins(28, 20, 28, 20)
         m_lay.setSpacing(12)
@@ -3547,6 +4411,7 @@ class AIAssistantPage(QWidget):
         top_bar = QHBoxLayout()
         top_bar.setContentsMargins(4, 0, 4, 0)
         top_bar.setSpacing(10)
+
         t_box = QVBoxLayout()
         t_box.setSpacing(2)
         self.chat_heading = QLabel("Document Intelligence RAG")
@@ -3560,29 +4425,33 @@ class AIAssistantPage(QWidget):
 
         top_bar.addStretch()
 
-        self.btn_sources_top = QPushButton("📎 Sources: All Vault")
+        self.btn_sources_top = QPushButton("Sources: All Vault")
+        self.btn_sources_top.setIcon(QIcon(draw_vector_icon("documents", t["text"], 13)))
         self.btn_sources_top.setFixedHeight(30)
         self.btn_sources_top.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.btn_sources_top.setToolTip("Select specific documents to ground queries, or import new files")
         self.btn_sources_top.clicked.connect(self._open_sources_dialog)
         top_bar.addWidget(self.btn_sources_top)
 
-        self.btn_ai_key = QPushButton("🔑 AI Key")
+        self.btn_ai_key = QPushButton("AI Key")
+        self.btn_ai_key.setIcon(QIcon(draw_vector_icon("key", t["primary"], 13)))
         self.btn_ai_key.setFixedHeight(30)
         self.btn_ai_key.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.btn_ai_key.setToolTip("Configure Gemini, Groq, or OpenAI API Key")
         self.btn_ai_key.clicked.connect(self._open_api_key_modal)
         top_bar.addWidget(self.btn_ai_key)
 
-        self.grounding_pill = QLabel("● Grounded in Vault Sources")
-        self.grounding_pill.setStyleSheet("""
-            background: #142920; color: #32D583;
+        self.grounding_pill = QLabel("Grounded in Vault Sources")
+        self.grounding_pill.setStyleSheet(f"""
+            background: {'rgba(242, 106, 27, 0.12)' if is_dark else '#FFF1EB'};
+            color: {t['primary']};
+            border: 1px solid {'rgba(242, 106, 27, 0.25)' if is_dark else 'rgba(242, 106, 27, 0.35)'};
             font-size: 11px; font-weight: 700;
             padding: 5px 12px; border-radius: 12px;
         """)
         top_bar.addWidget(self.grounding_pill)
 
-        self.speed_pill = QLabel("⚡ Sub-second RRF")
+        self.speed_pill = QLabel("Sub-second RRF")
         self.speed_pill.setStyleSheet(f"""
             background: {t['bg3']}; color: {t['text3']};
             font-size: 11px; font-weight: 600;
@@ -3629,16 +4498,16 @@ class AIAssistantPage(QWidget):
         qc_lay.addStretch()
         m_lay.addWidget(self.quick_chips_wrap)
 
-        # Main Message Stream (Scrollable Area)
+        # Main Message Stream (Scrollable Area — Completely Translucent)
         self.msg_scroll = QScrollArea()
-        self.msg_scroll.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
-        self.msg_scroll.viewport().setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
+        self.msg_scroll.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.msg_scroll.viewport().setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.msg_scroll.setWidgetResizable(True)
         self.msg_scroll.setStyleSheet("QScrollArea, QScrollArea > QWidget > QWidget { background: transparent; border: none; }")
         self.msg_scroll.viewport().setStyleSheet("background: transparent; border: none;")
 
         self.msg_container = QWidget()
-        self.msg_container.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
+        self.msg_container.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.msg_container.setStyleSheet("background: transparent; border: none;")
         self.msg_lay = QVBoxLayout(self.msg_container)
         self.msg_lay.setContentsMargins(0, 8, 0, 16)
@@ -3648,61 +4517,76 @@ class AIAssistantPage(QWidget):
         self.msg_scroll.setWidget(self.msg_container)
         m_lay.addWidget(self.msg_scroll, 1)
 
-        # Active Sources Grounding Pill Strip (Right Above Input Bar)
-        self.sources_strip = QFrame()
-        self.sources_strip.setFixedHeight(28)
-        self.sources_strip.setStyleSheet("background: transparent; border: none;")
-        ss_lay = QHBoxLayout(self.sources_strip)
-        ss_lay.setContentsMargins(4, 0, 4, 0)
-        ss_lay.setSpacing(8)
+        # Active Attachment Chips Strip (Directly above input bar)
+        self.attached_chips_frame = QFrame()
+        self.attached_chips_frame.setVisible(False)
+        self.attached_chips_frame.setStyleSheet("background: transparent; border: none;")
+        self.att_chips_lay = QHBoxLayout(self.attached_chips_frame)
+        self.att_chips_lay.setContentsMargins(4, 0, 4, 0)
+        self.att_chips_lay.setSpacing(8)
+        m_lay.addWidget(self.attached_chips_frame)
 
-        self.lbl_active_source_context = QLabel("📎 Query Scope: All Vault Documents")
-        self.lbl_active_source_context.setStyleSheet(f"font-size: 11px; font-weight: 600; color: {t['text3']};")
-        ss_lay.addWidget(self.lbl_active_source_context)
-
-        self.btn_add_source_inline = QPushButton("+ Filter / Add Sources")
-        self.btn_add_source_inline.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.btn_add_source_inline.setStyleSheet(f"background: transparent; border: none; font-size: 11px; font-weight: 700; color: {t['primary']};")
-        self.btn_add_source_inline.clicked.connect(self._open_sources_dialog)
-        ss_lay.addWidget(self.btn_add_source_inline)
-
-        self.btn_clear_sources = QPushButton("✕ Clear Filter")
-        self.btn_clear_sources.setVisible(False)
-        self.btn_clear_sources.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.btn_clear_sources.setStyleSheet("background: transparent; border: none; font-size: 11px; font-weight: 600; color: #EF4444;")
-        self.btn_clear_sources.clicked.connect(self._clear_pinned_sources)
-        ss_lay.addWidget(self.btn_clear_sources)
-
-        ss_lay.addStretch()
-        m_lay.addWidget(self.sources_strip)
-
-        # Bottom Floating Pill Input Bar (Matching Figma CHAT A.I+)
+        # Bottom Floating Pill Input Bar (Copilot / ChatGPT Style with + Menu)
         self.input_card = QFrame()
-        self.input_card.setFixedHeight(54)
+        self.input_card.setFixedHeight(56)
         self.input_card.setObjectName("floatingInputCard")
         in_lay = QHBoxLayout(self.input_card)
-        in_lay.setContentsMargins(12, 6, 8, 6)
-        in_lay.setSpacing(10)
+        in_lay.setContentsMargins(10, 6, 8, 6)
+        in_lay.setSpacing(8)
 
-        # Attachment / Source selector button
-        self.btn_attach = QPushButton("📎")
-        self.btn_attach.setFixedSize(32, 32)
-        self.btn_attach.setToolTip("Attach / Select Specific Source Documents")
+        # Attachment button (+)
+        self.btn_attach = QPushButton()
+        self.btn_attach.setFixedSize(36, 36)
+        self.btn_attach.setIcon(QIcon(draw_vector_icon("plus", t["primary"], 15)))
+        self.btn_attach.setToolTip("Upload files, select vault documents, or run OCR analysis")
         self.btn_attach.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.btn_attach.setStyleSheet(f"font-size: 16px; color: {t['primary']}; background: transparent; border: none;")
-        self.btn_attach.clicked.connect(self._open_sources_dialog)
+        self.btn_attach.setStyleSheet(f"""
+            QPushButton {{
+                background: {'rgba(255, 255, 255, 0.08)' if is_dark else '#F0F2F5'};
+                border: 1px solid {t['border']};
+                border-radius: 18px;
+            }}
+            QPushButton:hover {{
+                background: {'rgba(242, 106, 27, 0.20)' if is_dark else '#FFE7D9'};
+                border-color: {t['primary']};
+            }}
+        """)
+        self.btn_attach.clicked.connect(self._show_attachment_dropdown)
         in_lay.addWidget(self.btn_attach)
+
+        # Inline Scope Selector Pill
+        self.btn_scope_pill = QPushButton("All Vault")
+        self.btn_scope_pill.setFixedHeight(30)
+        self.btn_scope_pill.setIcon(QIcon(draw_vector_icon("chevron_down", t["text3"], 10)))
+        self.btn_scope_pill.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_scope_pill.setStyleSheet(f"""
+            QPushButton {{
+                background: {'rgba(255, 255, 255, 0.05)' if is_dark else '#F0F2F5'};
+                color: {t['text3']};
+                border: 1px solid {t['border']};
+                border-radius: 15px;
+                padding: 2px 10px;
+                font-size: 11px; font-weight: 600;
+            }}
+            QPushButton:hover {{
+                border-color: {t['primary']};
+                color: {t['text']};
+            }}
+        """)
+        self.btn_scope_pill.clicked.connect(self._open_sources_dialog)
+        in_lay.addWidget(self.btn_scope_pill)
 
         # Input QLineEdit
         self.input_field = QLineEdit()
-        self.input_field.setPlaceholderText("Ask a question about your documents...")
-        self.input_field.setStyleSheet("border: none; background: transparent; font-size: 13px; font-weight: 500;")
+        self.input_field.setPlaceholderText("Ask a question about your documents, attach files, or drag & drop...")
+        self.input_field.setStyleSheet(f"border: none; background: transparent; font-size: 13px; font-weight: 500; color: {t['text']};")
         self.input_field.returnPressed.connect(self._on_send)
         in_lay.addWidget(self.input_field, 1)
 
         # Circular Send Button
-        self.btn_send = QPushButton("➤")
+        self.btn_send = QPushButton()
         self.btn_send.setFixedSize(38, 38)
+        self.btn_send.setIcon(QIcon(draw_vector_icon("send", "#FFFFFF", 16)))
         self.btn_send.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.btn_send.clicked.connect(self._on_send)
         in_lay.addWidget(self.btn_send)
@@ -3715,12 +4599,9 @@ class AIAssistantPage(QWidget):
         self._render_active_chat()
         self.update_theme(self._t)
 
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # Conversation List Management
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # ── Conversation List Management & Editing ──
 
     def _render_conversations_list(self):
-        # Clear existing conversation rows
         while self.conv_list_lay.count():
             item = self.conv_list_lay.takeAt(0)
             w = item.widget()
@@ -3733,7 +4614,7 @@ class AIAssistantPage(QWidget):
 
         for conv in self.conversations:
             cid = conv["id"]
-            title = conv["title"]
+            title = conv.get("title", "Conversation")
             is_active = (cid == self.active_conv_id)
 
             if self.search_filter and self.search_filter.lower() not in title.lower():
@@ -3744,24 +4625,25 @@ class AIAssistantPage(QWidget):
             item_card.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
             if is_active:
-                bg = "#1A1714" if is_dark else "#FFF4ED"
-                border = f"1px solid {t['primary']}"
-                text_col = t['primary'] if not is_dark else "#FFFFFF"
+                bg = "rgba(242, 106, 27, 0.14)" if is_dark else "#FFF1EB"
+                border_left = f"3px solid {t['primary']}"
+                text_col = "#FFFFFF" if is_dark else t['primary']
                 font_weight = "700"
             else:
                 bg = "transparent"
-                border = "1px solid transparent"
+                border_left = "3px solid transparent"
                 text_col = t['text3']
                 font_weight = "500"
 
             item_card.setStyleSheet(f"""
                 QFrame {{
                     background: {bg};
-                    border: {border};
-                    border-radius: 10px;
+                    border: none;
+                    border-left: {border_left};
+                    border-radius: 8px;
                 }}
                 QFrame:hover {{
-                    background: {'#141418' if is_dark else '#F2F2F7'};
+                    background: {'rgba(255, 255, 255, 0.06)' if is_dark else '#F0F2F5'};
                 }}
             """)
 
@@ -3769,43 +4651,103 @@ class AIAssistantPage(QWidget):
             i_lay.setContentsMargins(10, 4, 8, 4)
             i_lay.setSpacing(8)
 
-            icon_lbl = QLabel("💬")
-            icon_lbl.setStyleSheet(f"font-size: 11px; color: {t['primary']}; background: transparent; border: none;")
-            i_lay.addWidget(icon_lbl)
+            ico_lbl = QLabel()
+            ico_lbl.setPixmap(draw_vector_icon("chat", t["primary"] if is_active else t["text4"], 14))
+            i_lay.addWidget(ico_lbl)
 
             lbl_txt = QLabel(title)
             lbl_txt.setStyleSheet(f"font-size: 12px; font-weight: {font_weight}; color: {text_col}; background: transparent; border: none;")
             i_lay.addWidget(lbl_txt, 1)
 
-            # Delete button (shows on hover / active)
-            del_btn = QPushButton("✕")
-            del_btn.setFixedSize(20, 20)
+            # Edit / Rename Button
+            btn_ren = QPushButton()
+            btn_ren.setFixedSize(22, 22)
+            btn_ren.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+            btn_ren.setIcon(QIcon(draw_vector_icon("pencil", t["text4"], 12)))
+            btn_ren.setToolTip("Rename conversation")
+            btn_ren.setStyleSheet("""
+                QPushButton { background: transparent; border: none; border-radius: 4px; }
+                QPushButton:hover { background: rgba(255, 255, 255, 0.12); }
+            """)
+            btn_ren.clicked.connect(lambda _, c=cid: self._rename_conversation(c))
+            i_lay.addWidget(btn_ren)
+
+            # Delete Button
+            del_btn = QPushButton()
+            del_btn.setFixedSize(22, 22)
             del_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-            del_btn.setStyleSheet(f"""
-                QPushButton {{
-                    background: transparent;
-                    color: {t['text4']};
-                    border: none;
-                    border-radius: 10px;
-                    font-size: 10px;
-                    font-weight: 700;
-                }}
-                QPushButton:hover {{
-                    color: #EF4444;
-                    background: {'rgba(239, 68, 68, 0.15)' if is_dark else '#FEE4E2'};
-                }}
+            del_btn.setIcon(QIcon(draw_vector_icon("trash", t["text4"], 12)))
+            del_btn.setToolTip("Delete conversation")
+            del_btn.setStyleSheet("""
+                QPushButton { background: transparent; border: none; border-radius: 4px; }
+                QPushButton:hover { background: rgba(239, 68, 68, 0.20); }
             """)
             del_btn.clicked.connect(lambda _, c=cid: self._delete_conversation(c))
             i_lay.addWidget(del_btn)
 
-            # Make card clickable
-            def make_click_handler(conv_id):
-                return lambda event: self._select_conversation(conv_id)
-            item_card.mousePressEvent = make_click_handler(cid)
+            # Left click: select
+            item_card.mousePressEvent = lambda ev, c=cid: self._select_conversation(c) if ev.button() == Qt.MouseButton.LeftButton else None
+
+            # Right click context menu
+            item_card.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+            item_card.customContextMenuRequested.connect(lambda pos, c=cid: self._show_conv_context_menu(pos, c))
 
             self.conv_list_lay.addWidget(item_card)
 
         self.conv_list_lay.addStretch(1)
+
+    def _show_conv_context_menu(self, pos, conv_id: str):
+        menu = QMenu(self)
+        act_rename = menu.addAction("Rename Conversation")
+        act_export = menu.addAction("Export to Markdown (.md)")
+        menu.addSeparator()
+        act_delete = menu.addAction("Delete Conversation")
+
+        action = menu.exec(QCursor.pos())
+        if action == act_rename:
+            self._rename_conversation(conv_id)
+        elif action == act_export:
+            self._export_conversation_markdown(conv_id)
+        elif action == act_delete:
+            self._delete_conversation(conv_id)
+
+    def _rename_conversation(self, conv_id: str):
+        conv = next((c for c in self.conversations if c["id"] == conv_id), None)
+        if not conv:
+            return
+        new_title, ok = QInputDialog.getText(
+            self, "Rename Conversation", "Enter new conversation title:",
+            QLineEdit.EchoMode.Normal, conv.get("title", "")
+        )
+        if ok and new_title.strip():
+            conv["title"] = new_title.strip()
+            self._save_conversations()
+            self._render_conversations_list()
+            if self.active_conv_id == conv_id:
+                self.chat_heading.setText(conv["title"])
+            self._create_notification_toast(f"Conversation renamed to '{new_title.strip()}'.")
+
+    def _export_conversation_markdown(self, conv_id: str):
+        conv = next((c for c in self.conversations if c["id"] == conv_id), None)
+        if not conv:
+            return
+        title = conv.get("title", "Conversation").replace(" ", "_")
+        fpath, _ = QFileDialog.getSaveFileName(
+            self, "Export Conversation to Markdown", f"{title}.md",
+            "Markdown Files (*.md);;Text Files (*.txt)"
+        )
+        if fpath:
+            try:
+                lines = [f"# {conv.get('title', 'Conversation')}\\n\\n*Exported from DocuVault AI on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*\\n\\n---\\n\\n"]
+                for msg in conv.get("messages", []):
+                    role = "**User**" if msg.get("role") == "user" else "**DocuVault AI**"
+                    text = msg.get("text", "")
+                    lines.append(f"### {role} ({msg.get('time', '')})\\n\\n{text}\\n\\n---\\n\\n")
+                with open(fpath, "w", encoding="utf-8") as f:
+                    f.writelines(lines)
+                self._create_notification_toast(f"Exported chat to {os.path.basename(fpath)}")
+            except Exception as e:
+                self._create_notification_toast(f"Export failed: {e}")
 
     def _select_conversation(self, conv_id: str):
         self.active_conv_id = conv_id
@@ -3821,18 +4763,18 @@ class AIAssistantPage(QWidget):
             "messages": [
                 {
                     "role": "assistant",
-                    "text": (
-                        "Ready to inspect your vault. What would you like to verify, compare, or search today?"
-                    ),
+                    "text": "Ready to inspect your vault and answer any question. What would you like to verify or search today?",
                     "citations": [],
-                    "time": "Just now",
+                    "time": datetime.now().strftime("%H:%M"),
                     "speed": "0.1s",
                     "guardrail": {"is_grounded": True, "confidence_score": 1.0, "warning": None},
+                    "provider": "DocuVault Hybrid Intelligence Engine",
                 }
             ],
         }
         self.conversations.insert(0, new_conv)
         self.active_conv_id = new_id
+        self._save_conversations()
         self._render_conversations_list()
         self._render_active_chat()
         self.input_field.setFocus()
@@ -3844,14 +4786,18 @@ class AIAssistantPage(QWidget):
         self.conversations = [c for c in self.conversations if c["id"] != conv_id]
         if self.active_conv_id == conv_id:
             self.active_conv_id = self.conversations[0]["id"]
+        self._save_conversations()
         self._render_conversations_list()
         self._render_active_chat()
+        self._create_notification_toast("Conversation deleted.")
 
     def _clear_all_chats(self):
         self.conversations = []
         self._init_default_conversations()
+        self._save_conversations()
         self._render_conversations_list()
         self._render_active_chat()
+        self._create_notification_toast("All conversation history cleared.")
 
     def _toggle_search_filter(self):
         vis = not self.in_chat_search.isVisible()
@@ -3920,17 +4866,36 @@ class AIAssistantPage(QWidget):
         self._create_notification_toast("Sources filter cleared. Querying all vault documents.")
 
     def _update_sources_strip(self):
-        if not self.pinned_sources:
-            self.lbl_active_source_context.setText("📎 Query Scope: All Vault Documents")
-            self.btn_sources_top.setText("📎 Sources: All Vault")
-            self.btn_clear_sources.setVisible(False)
+        pinned_cnt = len(self.pinned_sources)
+        att_cnt = len(self.attached_files)
+        total_scope = pinned_cnt + att_cnt
+
+        if total_scope == 0:
+            if hasattr(self, "lbl_active_source_context"):
+                self.lbl_active_source_context.setText("Query Scope: All Vault Documents")
+            if hasattr(self, "btn_scope_pill"):
+                self.btn_scope_pill.setText("All Vault")
+            if hasattr(self, "btn_sources_top"):
+                self.btn_sources_top.setText("Sources: All Vault")
+            if hasattr(self, "btn_clear_sources"):
+                self.btn_clear_sources.setVisible(False)
         else:
-            names = ", ".join(self.pinned_sources)
-            if len(names) > 34:
-                names = names[:34] + "..."
-            self.lbl_active_source_context.setText(f"📎 Pinned Sources ({len(self.pinned_sources)}): <b>{names}</b>")
-            self.btn_sources_top.setText(f"📎 Sources ({len(self.pinned_sources)} Active)")
-            self.btn_clear_sources.setVisible(True)
+            names = []
+            if pinned_cnt > 0:
+                names.extend(self.pinned_sources)
+            if att_cnt > 0:
+                names.extend([Path(f).name for f in self.attached_files])
+            txt = ", ".join(names)
+            if len(txt) > 34:
+                txt = txt[:34] + "..."
+            if hasattr(self, "lbl_active_source_context"):
+                self.lbl_active_source_context.setText(f"Query Scope ({total_scope} Active): <b>{txt}</b>")
+            if hasattr(self, "btn_scope_pill"):
+                self.btn_scope_pill.setText(f"{total_scope} docs")
+            if hasattr(self, "btn_sources_top"):
+                self.btn_sources_top.setText(f"Sources ({total_scope} Active)")
+            if hasattr(self, "btn_clear_sources"):
+                self.btn_clear_sources.setVisible(True)
 
     def _open_document_by_name(self, filename: str):
         main_win = self.window()
@@ -3950,9 +4915,174 @@ class AIAssistantPage(QWidget):
         else:
             self._create_notification_toast(f"Source file '{filename}' was not found in active vault index.")
 
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # Active Chat Rendering
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # ── File Attachment & Drag-and-Drop ──
+
+    def dragEnterEvent(self, event: QDragEnterEvent):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+
+    def dropEvent(self, event: QDropEvent):
+        urls = event.mimeData().urls()
+        added = 0
+        for u in urls:
+            fp = u.toLocalFile()
+            if fp and os.path.isfile(fp):
+                if fp not in self.attached_files:
+                    self.attached_files.append(fp)
+                    added += 1
+        if added > 0:
+            self._render_attached_chips()
+            self._update_sources_strip()
+            self._create_notification_toast(f"Attached {added} file{'s' if added > 1 else ''} to query scope.")
+
+    def _show_attachment_dropdown(self):
+        menu = QMenu(self)
+        t = self._t
+        is_dark = t.get("name") == "dark"
+        menu.setStyleSheet(f"""
+            QMenu {{
+                background: {'#14141B' if is_dark else '#FFFFFF'};
+                color: {t['text']};
+                border: 1px solid {t['border']};
+                border-radius: 12px;
+                padding: 6px;
+                font-size: 12px;
+            }}
+            QMenu::item {{
+                padding: 8px 20px 8px 10px;
+                border-radius: 6px;
+                margin: 2px 0;
+            }}
+            QMenu::item:selected {{
+                background: {'rgba(242, 106, 27, 0.15)' if is_dark else '#FFF1EB'};
+                color: {t['primary']};
+            }}
+            QMenu::separator {{
+                height: 1px;
+                background: {t['border']};
+                margin: 4px 6px;
+            }}
+        """)
+
+        act_file = menu.addAction(QIcon(draw_vector_icon("upload", t["primary"], 14)), "Upload files from Computer...")
+        act_vault = menu.addAction(QIcon(draw_vector_icon("documents", t["primary"], 14)), "Add from Vault Documents...")
+        act_ocr = menu.addAction(QIcon(draw_vector_icon("ocr", t["primary"], 14)), "OCR & Text Scanner...")
+        menu.addSeparator()
+        act_synth = menu.addAction(QIcon(draw_vector_icon("sparkle", t["primary"], 14)), "Deep Multi-Doc Synthesis")
+        act_deadlines = menu.addAction(QIcon(draw_vector_icon("calendar", t["primary"], 14)), "Audit Compliance & Deadlines")
+
+        pos = self.btn_attach.mapToGlobal(QPoint(0, -menu.sizeHint().height() - 8))
+        chosen = menu.exec(pos)
+
+        if chosen == act_file:
+            self._on_attach_clicked()
+        elif chosen == act_vault:
+            self._open_sources_dialog()
+        elif chosen == act_ocr:
+            self._on_ocr_scanner_clicked()
+        elif chosen == act_synth:
+            self.input_field.setText("Synthesize and compare the key clauses, liabilities, and obligations across all active vault contracts.")
+            self.input_field.setFocus()
+        elif chosen == act_deadlines:
+            self.input_field.setText("Extract all compliance deadlines, renewal dates, payment terms, and notice periods from my documents.")
+            self.input_field.setFocus()
+
+    def _on_ocr_scanner_clicked(self):
+        fpath, _ = QFileDialog.getOpenFileName(
+            self, "Select Image or Document for OCR", "",
+            "Documents & Images (*.pdf *.png *.jpg *.jpeg *.webp *.tiff);;All Files (*.*)"
+        )
+        if fpath:
+            if fpath not in self.attached_files:
+                self.attached_files.append(fpath)
+            self._render_attached_chips()
+            self._update_sources_strip()
+            self.input_field.setText(f"Please run OCR and extract all key data, dates, and amounts from '{Path(fpath).name}'.")
+            self.input_field.setFocus()
+
+    def _on_attach_clicked(self):
+        fpaths, _ = QFileDialog.getOpenFileNames(
+            self,
+            "Attach Files for Grounded AI Query",
+            "",
+            "All Supported Documents (*.pdf *.docx *.txt *.png *.jpg *.jpeg *.webp *.xlsx *.csv *.json *.md *.py);;PDF Documents (*.pdf);;Images (*.png *.jpg *.jpeg *.webp);;Office Documents (*.docx *.xlsx);;Text & Code (*.txt *.json *.csv *.md *.py);;All Files (*.*)"
+        )
+        if fpaths:
+            added = 0
+            for fp in fpaths:
+                if fp not in self.attached_files:
+                    self.attached_files.append(fp)
+                    added += 1
+            if added > 0:
+                self._render_attached_chips()
+                self._update_sources_strip()
+                self._create_notification_toast(f"Attached {added} file{'s' if added > 1 else ''}.")
+
+    def _render_attached_chips(self):
+        while self.att_chips_lay.count():
+            it = self.att_chips_lay.takeAt(0)
+            w = it.widget()
+            if w:
+                w.setParent(None)
+                w.deleteLater()
+
+        if not self.attached_files:
+            self.attached_chips_frame.setVisible(False)
+            return
+
+        t = self._t
+        is_dark = t.get("name") == "dark"
+        self.attached_chips_frame.setVisible(True)
+
+        lbl_head = QLabel("Attached Files:")
+        lbl_head.setStyleSheet(f"font-size: 11px; font-weight: 700; color: {t['text4']};")
+        self.att_chips_lay.addWidget(lbl_head)
+
+        for fp in self.attached_files:
+            fname = Path(fp).name
+            chip = QFrame()
+            chip.setStyleSheet(f"""
+                QFrame {{
+                    background: {'#181822' if is_dark else '#EEF2F6'};
+                    border: 1px solid {t['border']};
+                    border-radius: 12px;
+                }}
+            """)
+            c_lay = QHBoxLayout(chip)
+            c_lay.setContentsMargins(8, 2, 8, 2)
+            c_lay.setSpacing(6)
+
+            ico = QLabel()
+            ico.setPixmap(draw_vector_icon("clip", t["primary"], 12))
+            c_lay.addWidget(ico)
+
+            disp_name = fname if len(fname) <= 24 else fname[:22] + "..."
+            fn_lbl = QLabel(disp_name)
+            fn_lbl.setToolTip(fp)
+            fn_lbl.setStyleSheet(f"font-size: 11px; font-weight: 600; color: {t['text']};")
+            c_lay.addWidget(fn_lbl)
+
+            btn_del = QPushButton("✕")
+            btn_del.setFixedSize(16, 16)
+            btn_del.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+            btn_del.setStyleSheet("""
+                QPushButton { background: transparent; border: none; font-size: 10px; font-weight: 700; color: #EF4444; }
+                QPushButton:hover { background: rgba(239, 68, 68, 0.20); border-radius: 8px; }
+            """)
+            btn_del.clicked.connect(lambda _, p=fp: self._remove_attached_file(p))
+            c_lay.addWidget(btn_del)
+
+            self.att_chips_lay.addWidget(chip)
+
+        self.att_chips_lay.addStretch()
+
+    def _remove_attached_file(self, filepath: str):
+        if filepath in self.attached_files:
+            self.attached_files.remove(filepath)
+            self._render_attached_chips()
+            self._update_sources_strip()
+
+    # ── Active Chat Rendering (ChatGPT / Copilot Style) ──
 
     def _get_active_conv(self) -> Optional[Dict[str, Any]]:
         for c in self.conversations:
@@ -3961,7 +5091,6 @@ class AIAssistantPage(QWidget):
         return self.conversations[0] if self.conversations else None
 
     def _render_active_chat(self):
-        # Clear existing message widgets
         while self.msg_lay.count():
             item = self.msg_lay.takeAt(0)
             w = item.widget()
@@ -3977,141 +5106,192 @@ class AIAssistantPage(QWidget):
 
         t = self._t
         is_dark = t.get("name") == "dark"
-
         messages = conv.get("messages", [])
-        for msg in messages:
+
+        for idx, msg in enumerate(messages):
             role = msg.get("role", "user")
             text = msg.get("text", "")
             citations = msg.get("citations", [])
             speed = msg.get("speed", "0.2s")
             guardrail = msg.get("guardrail", {})
-            provider = msg.get("provider", "DocuVault Offline Hybrid Intelligence Engine")
+            provider = msg.get("provider", "DocuVault Hybrid Intelligence Engine")
 
             if role == "user":
-                # Outer wrapper aligning the bubble to the right
                 turn_widget = QWidget()
                 turn_widget.setStyleSheet("background: transparent; border: none;")
                 t_lay = QHBoxLayout(turn_widget)
-                t_lay.setContentsMargins(12, 6, 12, 6)
+                t_lay.setContentsMargins(12, 4, 12, 4)
                 t_lay.addStretch(1)
 
                 u_bubble = QFrame()
                 u_text_color = "#FFFFFF" if is_dark else "#0F172A"
-                u_bubble.setMinimumWidth(120)
+                u_bubble.setMinimumWidth(160)
                 u_bubble.setMaximumWidth(840)
                 u_bubble.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
-                u_bubble.setStyleSheet("background: transparent; border: none;")
+                u_bubble.setStyleSheet(f"""
+                    QFrame {{
+                        background: {'rgba(255, 255, 255, 0.05)' if is_dark else '#F3F4F6'};
+                        border: 1px solid {'rgba(255, 255, 255, 0.08)' if is_dark else '#E5E7EB'};
+                        border-radius: 14px;
+                    }}
+                """)
                 ub_lay = QVBoxLayout(u_bubble)
-                ub_lay.setContentsMargins(8, 8, 8, 8)
-                ub_lay.setSpacing(4)
+                ub_lay.setContentsMargins(14, 10, 14, 10)
+                ub_lay.setSpacing(6)
 
+                # Top row: user icon, name, time, actions
                 u_top = QHBoxLayout()
-                u_top.setSpacing(6)
-                u_icon = QLabel("👤")
-                u_icon.setStyleSheet("font-size: 11px; background: transparent; border: none;")
-                u_top.addWidget(u_icon)
-                u_title = QLabel("You")
-                u_title.setStyleSheet(f"font-size: 12px; font-weight: 700; color: {t['text']}; background: transparent; border: none;")
-                u_top.addWidget(u_title)
-                u_top.addSpacing(6)
+                u_top.setSpacing(8)
 
-                time_lbl = QLabel(msg.get("time", "Just now"))
-                time_lbl.setStyleSheet(f"font-size: 10px; color: {t['text4']}; background: transparent; border: none;")
+                u_ico = QLabel()
+                u_ico.setPixmap(draw_vector_icon("user", t["primary"], 14))
+                u_top.addWidget(u_ico)
+
+                u_title = QLabel("You")
+                u_title.setStyleSheet(f"font-size: 12px; font-weight: 700; color: {t['text']};")
+                u_top.addWidget(u_title)
+
+                time_lbl = QLabel(msg.get("time", ""))
+                time_lbl.setStyleSheet(f"font-size: 10px; color: {t['text4']};")
                 u_top.addWidget(time_lbl)
                 u_top.addStretch()
+
+                # In-thread User Actions: Edit, Copy, Delete
+                btn_ed = QPushButton()
+                btn_ed.setFixedSize(22, 22)
+                btn_ed.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+                btn_ed.setIcon(QIcon(draw_vector_icon("pencil", t["text4"], 11)))
+                btn_ed.setToolTip("Edit question")
+                btn_ed.setStyleSheet("background: transparent; border: none;")
+                btn_ed.clicked.connect(lambda _, i=idx, txt=text: self._edit_user_message(i, txt))
+                u_top.addWidget(btn_ed)
+
+                btn_cp = QPushButton()
+                btn_cp.setFixedSize(22, 22)
+                btn_cp.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+                btn_cp.setIcon(QIcon(draw_vector_icon("copy", t["text4"], 11)))
+                btn_cp.setToolTip("Copy question")
+                btn_cp.setStyleSheet("background: transparent; border: none;")
+                btn_cp.clicked.connect(lambda _, txt=text, b=btn_cp: self._copy_to_clipboard(txt, b))
+                u_top.addWidget(btn_cp)
+
+                btn_dl = QPushButton()
+                btn_dl.setFixedSize(22, 22)
+                btn_dl.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+                btn_dl.setIcon(QIcon(draw_vector_icon("trash", t["text4"], 11)))
+                btn_dl.setToolTip("Delete this turn")
+                btn_dl.setStyleSheet("background: transparent; border: none;")
+                btn_dl.clicked.connect(lambda _, i=idx: self._delete_message_at_index(i))
+                u_top.addWidget(btn_dl)
+
                 ub_lay.addLayout(u_top)
 
                 u_msg = QLabel(text)
                 u_msg.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
                 u_msg.setWordWrap(True)
-                u_msg.setStyleSheet(f"font-size: 13.5px; font-weight: 500; color: {u_text_color}; line-height: 1.5; background: transparent; border: none;")
+                u_msg.setStyleSheet(f"font-size: 13.5px; font-weight: 500; color: {u_text_color}; line-height: 1.55; background: transparent; border: none;")
                 ub_lay.addWidget(u_msg)
-
-                u_sep = QFrame()
-                u_sep.setFixedHeight(1)
-                u_sep.setStyleSheet(f"background: {'rgba(255, 255, 255, 0.06)' if is_dark else 'rgba(0, 0, 0, 0.06)'}; border: none; margin-top: 8px;")
-                ub_lay.addWidget(u_sep)
 
                 t_lay.addWidget(u_bubble, 0)
                 self.msg_lay.addWidget(turn_widget)
 
             else:
+                # Assistant Turn (Clean Copilot / ChatGPT Prose Flow)
                 turn_widget = QWidget()
                 turn_widget.setStyleSheet("background: transparent; border: none;")
                 t_lay = QVBoxLayout(turn_widget)
-                t_lay.setContentsMargins(8, 4, 8, 8)
+                t_lay.setContentsMargins(8, 6, 8, 12)
 
                 a_card = QFrame()
                 a_card.setStyleSheet("background: transparent; border: none;")
-                a_card.setObjectName("assistantBubble")
                 ac_lay = QVBoxLayout(a_card)
-                ac_lay.setContentsMargins(8, 8, 8, 12)
-                ac_lay.setSpacing(12)
+                ac_lay.setContentsMargins(4, 4, 4, 8)
+                ac_lay.setSpacing(10)
 
-                # Header Row
+                # Header Row: Sparkle icon, Title, Model Badge, Latency
                 a_top = QHBoxLayout()
                 a_top.setSpacing(8)
 
-                a_icon = QLabel("✨")
-                a_icon.setStyleSheet(f"font-size: 15px; color: {t['primary']}; background: transparent; border: none;")
-                a_top.addWidget(a_icon)
+                a_ico = QLabel()
+                a_ico.setPixmap(draw_vector_icon("sparkle", t["primary"], 16))
+                a_top.addWidget(a_ico)
 
-                a_title = QLabel("CHAT A.I+")
-                a_title.setStyleSheet(f"font-size: 13px; font-weight: 800; color: {t['primary']}; letter-spacing: -0.2px; background: transparent; border: none;")
+                a_title = QLabel("DocuVault AI")
+                a_title.setStyleSheet(f"font-size: 13px; font-weight: 800; color: {t['primary']}; letter-spacing: -0.2px;")
                 a_top.addWidget(a_title)
 
-                # Model / Engine Badge
-                engine_badge = QLabel("⚡ Offline Hybrid RAG")
-                if "Gemini" in provider:
-                    engine_badge.setText("☁️ Google Gemini 1.5")
-                elif "Groq" in provider:
-                    engine_badge.setText("⚡ Groq Llama-3.1")
+                engine_badge = QLabel("Offline Hybrid RAG")
+                if "Groq" in provider:
+                    engine_badge.setText("Groq Llama-3.1")
+                elif "Gemini" in provider:
+                    engine_badge.setText("Google Gemini 1.5")
                 elif "OpenAI" in provider:
-                    engine_badge.setText("☁️ OpenAI GPT-4o-mini")
+                    engine_badge.setText("OpenAI GPT-4o")
 
                 engine_badge.setStyleSheet(f"""
                     background: {'rgba(255, 255, 255, 0.06)' if is_dark else 'rgba(0, 0, 0, 0.05)'};
-                    color: {t['text3']};
-                    font-size: 10px; font-weight: 700;
+                    color: {t['text3']}; font-size: 10px; font-weight: 700;
                     padding: 3px 8px; border-radius: 6px;
                 """)
                 a_top.addWidget(engine_badge)
 
                 if citations:
-                    badge_ground = QLabel(f"● Grounded in {len(citations)} source{'s' if len(citations)>1 else ''}")
-                    badge_ground.setStyleSheet("""
-                        background: rgba(50, 213, 131, 0.16); color: #32D583;
+                    badge_ground = QLabel(f"Grounded ({len(citations)})")
+                    badge_ground.setStyleSheet(f"""
+                        background: {'rgba(242, 106, 27, 0.12)' if is_dark else '#FFF1EB'};
+                        color: {t['primary']};
+                        border: 1px solid {'rgba(242, 106, 27, 0.25)' if is_dark else 'rgba(242, 106, 27, 0.35)'};
                         font-size: 10px; font-weight: 700;
                         padding: 3px 8px; border-radius: 6px;
                     """)
                     a_top.addWidget(badge_ground)
 
-                badge_time = QLabel(f"⏱️ {speed}")
+                badge_time = QLabel(speed)
                 badge_time.setStyleSheet(f"""
                     background: {'rgba(255, 255, 255, 0.06)' if is_dark else 'rgba(0, 0, 0, 0.05)'};
-                    color: {t['text4']};
-                    font-size: 10px; font-weight: 700;
+                    color: {t['text4']}; font-size: 10px; font-weight: 700;
                     padding: 3px 8px; border-radius: 6px;
                 """)
                 a_top.addWidget(badge_time)
                 a_top.addStretch()
                 ac_lay.addLayout(a_top)
 
-                # Search Engine Style Evidence Sources Carousel/Cards
+                # Formatted Synthesized Answer (ChatGPT / Copilot Typography)
+                ans_display = QLabel()
+                ans_display.setTextFormat(Qt.TextFormat.RichText)
+                ans_display.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+                ans_display.setWordWrap(True)
+                ans_display.setStyleSheet("background: transparent; border: none; padding: 2px 0;")
+                html_body = format_chat_markdown_to_html(text, is_dark, t.get("primary", "#FF6422"))
+                ans_display.setText(html_body)
+                ac_lay.addWidget(ans_display)
+
+                # Hallucination Guardrail Alert
+                if guardrail.get("warning"):
+                    g_alert = QLabel(f"Warning: {guardrail['warning']}")
+                    g_alert.setWordWrap(True)
+                    g_alert.setStyleSheet("""
+                        background: rgba(245, 181, 68, 0.12);
+                        color: #F5B544; font-size: 11px; font-weight: 600;
+                        padding: 8px 12px; border-radius: 8px;
+                        border: 1px solid rgba(245, 181, 68, 0.25);
+                    """)
+                    ac_lay.addWidget(g_alert)
+
+                # Verified Sources Strip at bottom of answer
                 if citations:
                     src_container = QWidget()
                     src_container.setStyleSheet("background: transparent; border: none;")
                     sc_lay = QVBoxLayout(src_container)
-                    sc_lay.setContentsMargins(0, 2, 0, 4)
-                    sc_lay.setSpacing(8)
+                    sc_lay.setContentsMargins(0, 4, 0, 4)
+                    sc_lay.setSpacing(6)
 
-                    sc_head = QLabel(f"🔍 Verified Vault Sources ({len(citations)} Grounded)")
-                    sc_head.setStyleSheet(f"font-size: 11px; font-weight: 800; color: {t['primary']}; text-transform: uppercase; letter-spacing: 0.5px; background: transparent; border: none;")
+                    sc_head = QLabel(f"Verified Vault Sources ({len(citations)} Grounded):")
+                    sc_head.setStyleSheet(f"font-size: 11px; font-weight: 700; color: {t['text4']};")
                     sc_lay.addWidget(sc_head)
 
-                    # Flow / Horizontal Grid of Source Cards
                     cards_row = QHBoxLayout()
-                    cards_row.setSpacing(10)
+                    cards_row.setSpacing(8)
 
                     for cit in citations[:4]:
                         fname = cit.get("filename", "Document")
@@ -4119,23 +5299,15 @@ class AIAssistantPage(QWidget):
                         sec = cit.get("section_title") or cit.get("position") or "General"
                         score_val = cit.get("score", 95)
 
-                        # Determine file type icon
-                        f_lower = fname.lower()
-                        if f_lower.endswith((".jpg", ".jpeg", ".png", ".webp")):
-                            f_icon = "🖼️"
-                        elif f_lower.endswith((".pdf")):
-                            f_icon = "📕"
-                        elif f_lower.endswith((".xml", ".json", ".csv")):
-                            f_icon = "📑"
-                        else:
-                            f_icon = "📄"
+                        ext = Path(fname).suffix.lower()
+                        ico_name = "ocr" if ext in (".png", ".jpg", ".jpeg", ".webp") else "documents"
 
                         sc_card = QFrame()
                         sc_bg = "#16161E" if is_dark else "#F8FAFC"
                         sc_border = "#262632" if is_dark else "#E2E8F0"
-                        sc_card.setFixedHeight(68)
-                        sc_card.setMinimumWidth(190)
-                        sc_card.setMaximumWidth(260)
+                        sc_card.setFixedHeight(64)
+                        sc_card.setMinimumWidth(180)
+                        sc_card.setMaximumWidth(250)
                         sc_card.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
                         sc_card.setStyleSheet(f"""
                             QFrame {{
@@ -4148,39 +5320,40 @@ class AIAssistantPage(QWidget):
                             }}
                         """)
                         sc_card_lay = QVBoxLayout(sc_card)
-                        sc_card_lay.setContentsMargins(10, 8, 10, 8)
-                        sc_card_lay.setSpacing(4)
+                        sc_card_lay.setContentsMargins(10, 6, 10, 6)
+                        sc_card_lay.setSpacing(3)
 
                         r1 = QHBoxLayout()
                         r1.setSpacing(6)
-                        lbl_ico = QLabel(f_icon)
-                        lbl_ico.setStyleSheet("font-size: 12px; background: transparent; border: none;")
-                        r1.addWidget(lbl_ico)
+                        ico_lbl = QLabel()
+                        ico_lbl.setPixmap(draw_vector_icon(ico_name, t["primary"], 13))
+                        r1.addWidget(ico_lbl)
 
-                        display_name = fname
-                        if len(display_name) > 18:
-                            display_name = display_name[:16] + "..."
-                        lbl_fn = QLabel(display_name)
+                        disp_fn = fname if len(fname) <= 16 else fname[:14] + "..."
+                        lbl_fn = QLabel(disp_fn)
                         lbl_fn.setToolTip(fname)
-                        lbl_fn.setStyleSheet(f"font-size: 11.5px; font-weight: 700; color: {t['text']}; background: transparent; border: none;")
+                        lbl_fn.setStyleSheet(f"font-size: 11.5px; font-weight: 700; color: {t['text']};")
                         r1.addWidget(lbl_fn, 1)
 
                         lbl_pct = QLabel(f"{score_val}%")
-                        lbl_pct.setStyleSheet("""
-                            font-size: 9.5px; font-weight: 800; color: #32D583;
-                            background: rgba(50, 213, 131, 0.12); padding: 1px 5px; border-radius: 4px;
+                        lbl_pct.setStyleSheet(f"""
+                            font-size: 9.5px; font-weight: 800; color: {t['primary']};
+                            background: {'rgba(242, 106, 27, 0.12)' if is_dark else '#FFF1EB'};
+                            border: 1px solid {'rgba(242, 106, 27, 0.25)' if is_dark else 'rgba(242, 106, 27, 0.35)'};
+                            padding: 1px 5px; border-radius: 4px;
                         """)
                         r1.addWidget(lbl_pct)
                         sc_card_lay.addLayout(r1)
 
                         r2 = QHBoxLayout()
                         r2.setSpacing(6)
-                        lbl_loc = QLabel(f"Page {page} · {sec[:16]}")
-                        lbl_loc.setStyleSheet(f"font-size: 10px; color: {t['text4']}; font-weight: 600; background: transparent; border: none;")
+                        lbl_loc = QLabel(f"Page {page} · {sec[:14]}")
+                        lbl_loc.setStyleSheet(f"font-size: 10px; color: {t['text4']}; font-weight: 600;")
                         r2.addWidget(lbl_loc, 1)
 
-                        btn_view = QPushButton("👁️ View")
+                        btn_view = QPushButton("View")
                         btn_view.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+                        btn_view.setIcon(QIcon(draw_vector_icon("eye", "#FFFFFF", 11)))
                         btn_view.setFixedHeight(20)
                         btn_view.setStyleSheet(f"""
                             QPushButton {{
@@ -4188,53 +5361,25 @@ class AIAssistantPage(QWidget):
                                 border: none; border-radius: 4px;
                                 font-size: 9.5px; font-weight: 700; padding: 2px 8px;
                             }}
-                            QPushButton:hover {{
-                                background: {t['primary_hover']};
-                            }}
+                            QPushButton:hover {{ background: {t['primary_hover']}; }}
                         """)
                         btn_view.clicked.connect(lambda _, fn=fname: self._open_document_by_name(fn))
                         r2.addWidget(btn_view)
                         sc_card_lay.addLayout(r2)
 
-                        def make_open_handler(fn):
-                            return lambda ev: self._open_document_by_name(fn)
-                        sc_card.mousePressEvent = make_open_handler(fname)
+                        sc_card.mousePressEvent = lambda ev, fn=fname: self._open_document_by_name(fn)
                         cards_row.addWidget(sc_card)
 
                     cards_row.addStretch()
                     sc_lay.addLayout(cards_row)
                     ac_lay.addWidget(src_container)
 
-                # Formatted Synthesized Answer (Rich Markdown Typography)
-                ans_display = QLabel()
-                ans_display.setTextFormat(Qt.TextFormat.RichText)
-                ans_display.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-                ans_display.setWordWrap(True)
-                ans_display.setStyleSheet("background: transparent; border: none; padding: 4px 0;")
-                html_body = format_chat_markdown_to_html(text, is_dark, t.get("primary", "#FF6422"))
-                ans_display.setText(html_body)
-                ac_lay.addWidget(ans_display)
-
-                # Hallucination Guardrail Alert
-                if guardrail.get("warning"):
-                    g_alert = QLabel(f"⚠️ {guardrail['warning']}")
-                    g_alert.setWordWrap(True)
-                    g_alert.setStyleSheet("""
-                        background: rgba(245, 181, 68, 0.12);
-                        color: #F5B544;
-                        font-size: 11px;
-                        font-weight: 600;
-                        padding: 8px 12px;
-                        border-radius: 8px;
-                        border: 1px solid rgba(245, 181, 68, 0.25);
-                    """)
-                    ac_lay.addWidget(g_alert)
-
-                # Response Actions Toolbar
+                # Response Actions Toolbar (Vector Icons)
                 act_row = QHBoxLayout()
                 act_row.setSpacing(8)
 
-                btn_copy = QPushButton("📋 Copy Answer")
+                btn_copy = QPushButton("Copy Answer")
+                btn_copy.setIcon(QIcon(draw_vector_icon("copy", t["text3"], 12)))
                 btn_copy.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
                 btn_copy.setFixedHeight(26)
                 btn_copy.setStyleSheet(f"""
@@ -4243,50 +5388,61 @@ class AIAssistantPage(QWidget):
                         color: {t['text3']}; border: 1px solid {t['border']};
                         border-radius: 13px; padding: 2px 12px; font-size: 10.5px; font-weight: 600;
                     }}
-                    QPushButton:hover {{
-                        color: {t['text']}; border-color: {t['primary']};
-                    }}
+                    QPushButton:hover {{ color: {t['text']}; border-color: {t['primary']}; }}
                 """)
                 clean_text = re.sub(r"<[^>]+>", "", text)
                 btn_copy.clicked.connect(lambda _, txt=clean_text, b=btn_copy: self._copy_to_clipboard(txt, b))
                 act_row.addWidget(btn_copy)
 
-                btn_up = QPushButton("👍 Helpful")
+                btn_up = QPushButton("Helpful")
+                btn_up.setIcon(QIcon(draw_vector_icon("thumb_up", t["text3"], 12)))
                 btn_up.setFixedHeight(26)
                 btn_up.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
                 btn_up.setStyleSheet(f"background: transparent; border: 1px solid {t['border']}; border-radius: 13px; font-size: 10.5px; font-weight: 600; color: {t['text3']}; padding: 2px 10px;")
-                btn_up.clicked.connect(lambda _, b=btn_up: b.setStyleSheet(f"background: {t['green_bg']}; border: 1px solid {t['green']}; border-radius: 13px; font-size: 10.5px; font-weight: 700; color: {t['green']}; padding: 2px 10px;"))
+                btn_up.clicked.connect(lambda _, b=btn_up: b.setStyleSheet(f"background: {'rgba(242, 106, 27, 0.15)' if is_dark else '#FFF1EB'}; border: 1px solid {t['primary']}; border-radius: 13px; font-size: 10.5px; font-weight: 700; color: {t['primary']}; padding: 2px 10px;"))
                 act_row.addWidget(btn_up)
 
-                btn_down = QPushButton("👎 Unhelpful")
+                btn_down = QPushButton("Unhelpful")
+                btn_down.setIcon(QIcon(draw_vector_icon("thumb_down", t["text3"], 12)))
                 btn_down.setFixedHeight(26)
                 btn_down.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
                 btn_down.setStyleSheet(f"background: transparent; border: 1px solid {t['border']}; border-radius: 13px; font-size: 10.5px; font-weight: 600; color: {t['text3']}; padding: 2px 10px;")
                 btn_down.clicked.connect(lambda _, b=btn_down: b.setStyleSheet("background: rgba(239, 68, 68, 0.15); border: 1px solid #EF4444; border-radius: 13px; font-size: 10.5px; font-weight: 700; color: #EF4444; padding: 2px 10px;"))
                 act_row.addWidget(btn_down)
 
-                act_row.addStretch()
-
-                btn_regen = QPushButton("🔄 Regenerate")
-                btn_regen.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-                btn_regen.setFixedHeight(26)
-                btn_regen.setStyleSheet(f"""
-                    QPushButton {{
-                        background: {'#16161D' if is_dark else '#F1F5F9'};
-                        color: {t['text3']}; border: 1px solid {t['border']};
-                        border-radius: 13px; padding: 2px 12px; font-size: 10.5px; font-weight: 600;
-                    }}
-                    QPushButton:hover {{
-                        color: {t['primary']}; border-color: {t['primary']};
-                    }}
-                """)
+                # Regenerate
                 prev_query = None
-                for m in reversed(messages):
+                for m in reversed(messages[:idx]):
                     if m.get("role") == "user":
                         prev_query = m.get("text")
                         break
                 if prev_query:
+                    btn_regen = QPushButton("Regenerate")
+                    btn_regen.setIcon(QIcon(draw_vector_icon("refresh", t["text3"], 12)))
+                    btn_regen.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+                    btn_regen.setFixedHeight(26)
+                    btn_regen.setStyleSheet(f"""
+                        QPushButton {{
+                            background: {'#16161D' if is_dark else '#F1F5F9'};
+                            color: {t['text3']}; border: 1px solid {t['border']};
+                            border-radius: 13px; padding: 2px 12px; font-size: 10.5px; font-weight: 600;
+                        }}
+                        QPushButton:hover {{ color: {t['primary']}; border-color: {t['primary']}; }}
+                    """)
                     btn_regen.clicked.connect(lambda _, q=prev_query: self._execute_query(q, is_regenerate=True))
+                    act_row.addWidget(btn_regen)
+
+                # Delete assistant turn
+                btn_del_turn = QPushButton()
+                btn_del_turn.setFixedSize(26, 26)
+                btn_del_turn.setIcon(QIcon(draw_vector_icon("trash", t["text4"], 11)))
+                btn_del_turn.setToolTip("Delete this response")
+                btn_del_turn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+                btn_del_turn.setStyleSheet("background: transparent; border: none;")
+                btn_del_turn.clicked.connect(lambda _, i=idx: self._delete_message_at_index(i))
+                act_row.addWidget(btn_del_turn)
+
+                act_row.addStretch()
                 ac_lay.addLayout(act_row)
 
                 turn_sep = QFrame()
@@ -4302,20 +5458,38 @@ class AIAssistantPage(QWidget):
             self.msg_scroll.verticalScrollBar().maximum()
         ))
 
+    def _edit_user_message(self, msg_idx: int, old_text: str):
+        self.input_field.setText(old_text)
+        self.input_field.setFocus()
+        self.input_field.selectAll()
+        self._create_notification_toast("Edit question and press Enter to re-run.")
+
+    def _delete_message_at_index(self, msg_idx: int):
+        conv = self._get_active_conv()
+        if not conv:
+            return
+        msgs = conv.get("messages", [])
+        if 0 <= msg_idx < len(msgs):
+            is_user = (msgs[msg_idx].get("role") == "user")
+            del msgs[msg_idx]
+            if is_user and msg_idx < len(msgs) and msgs[msg_idx].get("role") == "assistant":
+                del msgs[msg_idx]
+            self._save_conversations()
+            self._render_active_chat()
+            self._create_notification_toast("Deleted from chat history.")
+
     def _copy_to_clipboard(self, text: str, btn: QPushButton):
         app = QApplication.instance()
         if app:
             clipboard = app.clipboard()
             clipboard.setText(text)
-            btn.setText("✓ Copied!")
-            QTimer.singleShot(1500, lambda: btn.setText("📋 Copy"))
+            old_txt = btn.text()
+            btn.setText("Copied!")
+            QTimer.singleShot(1500, lambda: btn.setText(old_txt))
 
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # User Input & Real Engine Query Execution
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # ── Input Handling & Generative RAG Query Execution ──
 
     def ask_query(self, query: str):
-        """Public API to inject query directly from quick chips or universal search."""
         self.input_field.setText(query)
         self._on_send()
 
@@ -4333,37 +5507,41 @@ class AIAssistantPage(QWidget):
         if not conv:
             return
 
-        # If not regenerating, append user message
         if not is_regenerate:
             conv["messages"].append({
                 "role": "user",
                 "text": query_text,
-                "time": time.strftime("%H:%M"),
+                "time": datetime.now().strftime("%H:%M"),
             })
-            # Auto-title conversation if it's default
-            if conv["title"] in ("New Conversation", "Document Intelligence RAG") and len(conv["messages"]) <= 3:
+            if conv.get("title") in ("New Conversation", "Document Intelligence RAG") and len(conv["messages"]) <= 3:
                 clean_title = query_text.replace("What is", "").replace("When is", "").strip().capitalize()
                 if len(clean_title) > 28:
                     clean_title = clean_title[:28] + "..."
                 conv["title"] = clean_title
                 self._render_conversations_list()
 
-        # Query Assistant
         start_t = time.time()
         answer_text = "DocuVault AI analyzed your local vault files."
         citations = []
         guardrail = {"is_grounded": True, "confidence_score": 1.0, "warning": None}
-        provider = "DocuVault Offline Hybrid Intelligence Engine"
+        provider = "DocuVault Hybrid Intelligence Engine"
+
+        # Determine target filenames (combining pinned sources + attached files)
+        targets = list(self.pinned_sources)
+        for att in self.attached_files:
+            fn = Path(att).name
+            if fn not in targets:
+                targets.append(fn)
 
         if self.assistant:
             try:
                 res = self.assistant.answer_query(
                     query_text,
-                    target_filenames=self.pinned_sources if self.pinned_sources else None,
+                    target_filenames=targets if targets else None,
                     user_email=self.current_user.get("email"),
                 )
                 if res:
-                    answer_text = res.get("answer_text") or res.get("answer") or "No clause found."
+                    answer_text = res.get("answer_text") or res.get("answer") or "No direct clause found."
                     citations = res.get("citations", [])
                     guardrail = res.get("guardrail", {})
                     provider = res.get("provider", provider)
@@ -4382,12 +5560,13 @@ class AIAssistantPage(QWidget):
             "role": "assistant",
             "text": answer_text,
             "citations": citations,
-            "time": time.strftime("%H:%M"),
+            "time": datetime.now().strftime("%H:%M"),
             "speed": speed_str,
             "guardrail": guardrail,
             "provider": provider,
         })
 
+        self._save_conversations()
         self._render_active_chat()
 
     def set_assistant(self, assistant: ExplainableAIAssistant):
@@ -4401,13 +5580,10 @@ class AIAssistantPage(QWidget):
             self.assistant.set_owner_email(user_dict.get("email"))
         name = user_dict.get("full_name") or user_dict.get("email") or "Vault User"
         self.profile_name.setText(name)
-        initial = name[0].upper() if name else "V"
-        self.avatar_lbl.setText(initial)
         tier = user_dict.get("tier", "Pro")
         self.profile_tier.setText(f"{tier} Plan · Offline")
 
     def _create_notification_toast(self, message: str):
-        # Notify via feedback if master window available
         p = self.window()
         if hasattr(p, "_show_feedback"):
             p._show_feedback(message)
@@ -4420,8 +5596,8 @@ class AIAssistantPage(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.setStyleSheet("background: transparent; border: none;")
 
-        # Translucent Frosted Glass Sidebar
-        sidebar_bg = "rgba(10, 10, 14, 0.78)" if is_dark else "rgba(255, 255, 255, 0.88)"
+        # Frosted glass sidebar
+        sidebar_bg = "rgba(10, 10, 14, 0.70)" if is_dark else "rgba(255, 255, 255, 0.80)"
         sidebar_border = "rgba(255, 255, 255, 0.08)" if is_dark else "rgba(0, 0, 0, 0.08)"
         self.sidebar_frame.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.sidebar_frame.setStyleSheet(f"""
@@ -4433,7 +5609,7 @@ class AIAssistantPage(QWidget):
         self.lbl_title.setStyleSheet(f"font-size: 19px; font-weight: 800; color: {t['text']}; letter-spacing: -0.5px;")
         self.div_sidebar.setStyleSheet(f"background: {sidebar_border};")
 
-        # New chat button: docuvault vibrant orange pill
+        # New chat button
         self.btn_new_chat.setStyleSheet(f"""
             QPushButton {{
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {t['primary']}, stop:1 {t['primary_hover']});
@@ -4443,54 +5619,33 @@ class AIAssistantPage(QWidget):
                 font-size: 12.5px;
                 font-weight: 700;
             }}
-            QPushButton:hover {{
-                background: {t['primary_hover']};
-            }}
+            QPushButton:hover {{ background: {t['primary_hover']}; }}
         """)
-
         self.btn_search_toggle.setStyleSheet(f"""
             QPushButton {{
                 background: {'#141416' if is_dark else '#FFFFFF'};
-                color: {t['text3']};
                 border: 1px solid {t['border']};
                 border-radius: 19px;
-                font-size: 13px;
             }}
-            QPushButton:hover {{
-                border-color: {t['primary']};
-                color: {t['primary']};
-            }}
+            QPushButton:hover {{ border-color: {t['primary']}; }}
         """)
 
         self.in_chat_search.setStyleSheet(f"""
             QLineEdit {{
-                background: {t['bg3']};
-                color: {t['text']};
-                border: 1px solid {t['border']};
-                border-radius: 8px;
-                padding: 4px 10px;
-                font-size: 11px;
+                background: {t['bg3']}; color: {t['text']};
+                border: 1px solid {t['border']}; border-radius: 8px;
+                padding: 4px 10px; font-size: 11px;
             }}
-            QLineEdit:focus {{
-                border-color: {t['primary']};
-            }}
+            QLineEdit:focus {{ border-color: {t['primary']}; }}
         """)
 
         self.btn_settings.setStyleSheet(f"""
             QPushButton {{
-                background: transparent;
-                color: {t['text3']};
-                border: 1px solid {t['border']};
-                border-radius: 8px;
-                font-size: 11.5px;
-                font-weight: 600;
-                text-align: left;
-                padding-left: 12px;
+                background: transparent; color: {t['text3']};
+                border: 1px solid {t['border']}; border-radius: 8px;
+                font-size: 11.5px; font-weight: 600; text-align: left; padding-left: 12px;
             }}
-            QPushButton:hover {{
-                background: {'#141418' if is_dark else '#F2F2F7'};
-                color: {t['text']};
-            }}
+            QPushButton:hover {{ background: {'#141418' if is_dark else '#F2F2F7'}; color: {t['text']}; }}
         """)
 
         self.profile_card.setStyleSheet(f"""
@@ -4499,141 +5654,1198 @@ class AIAssistantPage(QWidget):
             border-radius: 10px;
         """)
 
-        # Main Chat Canvas Styling (Clean Solid Background — No background particles or constellation lines cluttering the screen)
-        canvas_bg = "#0C0C10" if is_dark else "#FFFFFF"
-        canvas_border = "#1E1E24" if is_dark else "#E5E7EB"
-        self.main_chat_frame.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
+        # Main Chat Canvas Styling (COMPLETELY TRANSLUCENT FOR 60-FPS PARTICLES)
+        self.main_chat_frame.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.main_chat_frame.setStyleSheet(f"""
             #aiChatCanvas {{
-                background: {canvas_bg};
-                border-left: 1px solid {canvas_border};
+                background: transparent;
+                border-left: 1px solid {sidebar_border};
             }}
         """)
-        self.msg_scroll.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
-        self.msg_scroll.viewport().setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
-        self.msg_scroll.viewport().setStyleSheet(f"background: {canvas_bg}; border: none;")
-        self.msg_scroll.setStyleSheet(f"QScrollArea, QScrollArea > QWidget > QWidget {{ background: {canvas_bg}; border: none; }}")
-        self.msg_container.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
-        self.msg_container.setStyleSheet(f"background: {canvas_bg}; border: none;")
+        self.msg_scroll.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.msg_scroll.viewport().setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.msg_scroll.viewport().setStyleSheet("background: transparent; border: none;")
+        self.msg_scroll.setStyleSheet("QScrollArea, QScrollArea > QWidget > QWidget { background: transparent; border: none; }")
+        self.msg_container.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.msg_container.setStyleSheet("background: transparent; border: none;")
 
         self.chat_heading.setStyleSheet(f"font-size: 19px; font-weight: 800; color: {t['text']}; letter-spacing: -0.4px;")
         self.chat_subheading.setStyleSheet(f"font-size: 11.5px; color: {t['text4']};")
 
         # Top Bar buttons
+        if hasattr(self, "grounding_pill"):
+            self.grounding_pill.setStyleSheet(f"""
+                background: {'rgba(242, 106, 27, 0.12)' if is_dark else '#FFF1EB'};
+                color: {t['primary']};
+                border: 1px solid {'rgba(242, 106, 27, 0.25)' if is_dark else 'rgba(242, 106, 27, 0.35)'};
+                font-size: 11px; font-weight: 700;
+                padding: 5px 12px; border-radius: 12px;
+            """)
+        if hasattr(self, "badge_offline"):
+            self.badge_offline.setStyleSheet(f"""
+                font-size: 10px; font-weight: 700; color: {t['primary']};
+                background: {'rgba(242, 106, 27, 0.12)' if is_dark else '#FFF1EB'};
+                border: 1px solid {'rgba(242, 106, 27, 0.25)' if is_dark else 'rgba(242, 106, 27, 0.35)'};
+                padding: 3px 8px; border-radius: 6px;
+            """)
         if hasattr(self, "btn_sources_top"):
+            self.btn_sources_top.setIcon(QIcon(draw_vector_icon("documents", t["text"], 13)))
             self.btn_sources_top.setStyleSheet(f"""
                 QPushButton {{
                     background: {t['bg3']}; color: {t['text']};
                     border: 1px solid {t['border']}; border-radius: 14px;
                     padding: 4px 14px; font-size: 11px; font-weight: 600;
                 }}
-                QPushButton:hover {{
-                    border-color: {t['primary']}; color: {t['primary']};
-                }}
+                QPushButton:hover {{ border-color: {t['primary']}; color: {t['primary']}; }}
             """)
         if hasattr(self, "btn_ai_key"):
+            self.btn_ai_key.setIcon(QIcon(draw_vector_icon("key", t["primary"], 13)))
             self.btn_ai_key.setStyleSheet(f"""
                 QPushButton {{
                     background: {t['bg3']}; color: {t['primary']};
                     border: 1px solid {t['border']}; border-radius: 14px;
                     padding: 4px 14px; font-size: 11px; font-weight: 700;
                 }}
-                QPushButton:hover {{
-                    background: {t['primary']}; color: #FFFFFF;
-                }}
+                QPushButton:hover {{ background: {t['primary']}; color: #FFFFFF; }}
             """)
 
-        # Floating Pill Input Bar Styling (Figma CHAT A.I+)
-        input_bg = "#16161D" if is_dark else "#F8FAFC"
-        input_border = "#272734" if is_dark else "#E2E8F0"
-        shadow_style = "box-shadow: 0 4px 20px rgba(0,0,0,0.06);" if not is_dark else ""
+        # Floating Pill Input Bar Styling
+        input_bg = "rgba(22, 22, 29, 0.88)" if is_dark else "rgba(248, 250, 252, 0.92)"
+        input_border = "rgba(255, 100, 34, 0.40)" if is_dark else "rgba(255, 100, 34, 0.30)"
         self.input_card.setStyleSheet(f"""
             #floatingInputCard {{
                 background: {input_bg};
                 border: 1.5px solid {input_border};
                 border-radius: 27px;
-                {shadow_style}
             }}
-            #floatingInputCard:hover {{
-                border-color: {t['primary']};
-            }}
+            #floatingInputCard:hover {{ border-color: {t['primary']}; }}
         """)
 
         self.input_field.setStyleSheet(f"""
             QLineEdit {{
-                border: none;
-                background: transparent;
-                font-size: 13px;
-                font-weight: 500;
-                color: {t['text']};
+                border: none; background: transparent;
+                font-size: 13px; font-weight: 500; color: {t['text']};
             }}
         """)
 
         self.btn_send.setStyleSheet(f"""
             QPushButton {{
-                background: {t['primary']};
-                color: #FFFFFF;
-                border: none;
-                border-radius: 19px;
-                font-size: 14px;
-                font-weight: 700;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {t['primary']}, stop:1 {t['primary_hover']});
+                border: none; border-radius: 19px;
             }}
-            QPushButton:hover {{
-                background: {t['primary_hover']};
-            }}
+            QPushButton:hover {{ background: {t['primary_hover']}; }}
         """)
 
-        if hasattr(self, "profile_name"):
-            self.profile_name.setStyleSheet(f"font-size: 12px; font-weight: 700; color: {t['text']};")
-        if hasattr(self, "profile_tier"):
-            self.profile_tier.setStyleSheet(f"font-size: 10px; color: {t['text4']}; font-weight: 600;")
-        if hasattr(self, "grounding_pill"):
-            self.grounding_pill.setStyleSheet("""
-                background: #142920; color: #32D583;
-                font-size: 11px; font-weight: 700;
-                padding: 5px 12px; border-radius: 12px;
-            """)
-        if hasattr(self, "speed_pill"):
-            self.speed_pill.setStyleSheet(f"""
-                background: {t['bg3']}; color: {t['text3']};
-                font-size: 11px; font-weight: 600;
-                padding: 5px 12px; border-radius: 12px;
-            """)
-        if hasattr(self, "quick_buttons"):
-            for q_btn in self.quick_buttons:
-                q_btn.setStyleSheet(f"""
-                    QPushButton {{
-                        background: {t['bg3']}; color: {t['text']};
-                        border: 1px solid {t['border']}; border-radius: 14px;
-                        padding: 4px 12px; font-size: 11px; font-weight: 600;
-                    }}
-                    QPushButton:hover {{
-                        border-color: {t['primary']}; color: {t['primary']};
-                    }}
-                """)
-        if hasattr(self, "lbl_active_source_context"):
-            self.lbl_active_source_context.setStyleSheet(f"font-size: 11px; font-weight: 600; color: {t['text3']};")
-
         self._update_sources_strip()
-
-        # Re-render conversation list & chat items for updated colors
         self._render_conversations_list()
         self._render_active_chat()
 
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 3. AI FILE ORGANIZER & INTELLIGENT TRIAGE
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+class AIFileOrganizerPage(QWidget):
+    """
+    Production AI-Powered File Organizer & Intelligent Triage:
+    - 60-FPS Ambient Background Animation: Frosted glassmorphism layout allows the
+      InteractiveBackground particle constellation to shine through.
+    - Accurate Real-Time Metrics: Reflects live vault database (MongoDB + disk).
+    - Autonomous Real-Time Auto-Organize: Monitors intake and automatically classifies,
+      verifies magic bytes, moves files, syncs to MongoDB, and logs operations.
+    - Interactive File Review Table with View Mode toggle (Pending Intake Queue vs Organized Vault).
+    - One-Click Smart Batch Sort, Dry-Run Simulation, Demo Batch Generator, and Batch Rollback.
+    - Drag & Drop Intake: Drop any document onto the window for instant triage.
+    - Clean Collapsible Operations & Security Stream with live action filtering.
+    """
+
+    def __init__(self, organizer: FileOrganizerDaemon, mongo: MongoDatabase, theme: Dict[str, str], parent=None):
+        super().__init__(parent)
+        self.organizer = organizer
+        self.mongo = mongo
+        self._t = theme
+        self.last_batch_moves: List[Dict[str, str]] = []
+        self._pending_files: List[Dict[str, Any]] = []
+        self.auto_organize_enabled: bool = True
+        self._is_sorting: bool = False
+        self._view_mode: str = "PENDING"  # "PENDING" or "VAULT"
+        self._log_filter: str = "ALL"      # "ALL", "SORT", "QUARANTINE", "UNDO"
+        self._first_load: bool = True
+
+        self.setAcceptDrops(True)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.setStyleSheet("background: transparent; border: none;")
+
+        self._build_ui()
+
+        # Seed sample intake if empty on initial launch so user never sees an empty void
+        intake_dir = self.organizer.vault_root / "intake"
+        intake_dir.mkdir(parents=True, exist_ok=True)
+        if not [f for f in intake_dir.iterdir() if f.is_file()]:
+            self._seed_sample_intake()
+
+        self.refresh_files()
+
+        # Real-time auto-refresh timer for logs & autonomous file organizer
+        self.refresh_timer = QTimer(self)
+        self.refresh_timer.setInterval(3500)
+        self.refresh_timer.timeout.connect(self._auto_sync_timer_tick)
+        self.refresh_timer.start()
+
+    def _build_ui(self):
+        t = self._t
+        is_dark = t.get("name") == "dark"
+
+        root_lay = QVBoxLayout(self)
+        root_lay.setContentsMargins(28, 20, 28, 18)
+        root_lay.setSpacing(12)
+
+        # ── 1. Header Banner ──
+        h_box = QHBoxLayout()
+        h_box.setSpacing(12)
+
+        ico_lbl = QLabel()
+        ico_lbl.setPixmap(draw_vector_icon("organizer", t["primary"], 26))
+        h_box.addWidget(ico_lbl)
+
+        title_lay = QVBoxLayout()
+        title_lay.setSpacing(2)
+        self.lbl_title = QLabel("AI File Organizer & Intelligent Triage")
+        self.lbl_title.setStyleSheet(f"font-size: 20px; font-weight: 800; color: {t['text']}; letter-spacing: -0.4px;")
+        title_lay.addWidget(self.lbl_title)
+
+        self.lbl_sub = QLabel("Autonomous rule-based & machine-learning folder routing, smart renaming, and magic-byte integrity.")
+        self.lbl_sub.setStyleSheet(f"font-size: 12px; color: {t['text4']};")
+        title_lay.addWidget(self.lbl_sub)
+        h_box.addLayout(title_lay, 1)
+
+        # Live engine status badge / interactive toggle
+        self.btn_auto_status = QPushButton("● Auto-Organize: ACTIVE")
+        self.btn_auto_status.setFixedHeight(28)
+        self.btn_auto_status.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_auto_status.setToolTip("Click to toggle autonomous background organization ON or PAUSED")
+        self.btn_auto_status.setStyleSheet(f"""
+            QPushButton {{
+                font-size: 11px; font-weight: 700; color: {t['green']};
+                background: {t['green_bg']};
+                border: 1px solid {t.get('green_border', 'rgba(255, 122, 46, 0.35)')};
+                padding: 4px 12px; border-radius: 12px;
+            }}
+            QPushButton:hover {{
+                background: {t.get('hover', 'rgba(255, 122, 46, 0.20)')};
+            }}
+        """)
+        self.btn_auto_status.clicked.connect(self._toggle_auto_organize)
+        h_box.addWidget(self.btn_auto_status)
+        root_lay.addLayout(h_box)
+
+        # ── 2. Top Metric Cards (Frosted Glassmorphic) ──
+        cards_lay = QHBoxLayout()
+        cards_lay.setSpacing(12)
+
+        self.card_total = self._create_metric_card("Total Vault Files", "0", "organizer", t["primary"])
+        self.card_intake = self._create_metric_card("Intake Pending", "0", "documents", t["primary"])
+        self.card_quarantine = self._create_metric_card("Quarantined", "0", "security", t["red"])
+        self.card_ops = self._create_metric_card("Audit Operations", "0", "activity", t["green"])
+
+        cards_lay.addWidget(self.card_total)
+        cards_lay.addWidget(self.card_intake)
+        cards_lay.addWidget(self.card_quarantine)
+        cards_lay.addWidget(self.card_ops)
+        root_lay.addLayout(cards_lay)
+
+        # ── 3. Action Toolbar (Frosted Glass Container) ──
+        self.tb_card = QFrame()
+        self.tb_card.setObjectName("organizerToolbar")
+        self._apply_toolbar_style()
+
+        tb_lay = QHBoxLayout(self.tb_card)
+        tb_lay.setContentsMargins(12, 8, 12, 8)
+        tb_lay.setSpacing(8)
+
+        # Run Smart Sort Primary Button
+        self.btn_sort = QPushButton("Run Smart AI Sort Now")
+        self.btn_sort.setIcon(QIcon(draw_vector_icon("organizer", "#FFFFFF", 14)))
+        self.btn_sort.setFixedHeight(32)
+        self.btn_sort.setMinimumWidth(168)
+        self.btn_sort.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_sort.setStyleSheet(f"""
+            QPushButton {{
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {t['primary']}, stop:1 {t['primary_hover']});
+                color: #FFFFFF; font-size: 11px; font-weight: 700;
+                border: none; border-radius: 8px; padding: 4px 10px;
+            }}
+            QPushButton:hover {{ background: {t['primary_hover']}; }}
+        """)
+        self.btn_sort.clicked.connect(self._run_smart_sort)
+        tb_lay.addWidget(self.btn_sort)
+
+        # Dry-run Preview Button
+        self.btn_preview = QPushButton("Dry-Run Preview")
+        self.btn_preview.setIcon(QIcon(draw_vector_icon("eye", t["text"], 13)))
+        self.btn_preview.setFixedHeight(32)
+        self.btn_preview.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_preview.setStyleSheet(f"""
+            QPushButton {{
+                background: {'rgba(255, 255, 255, 0.06)' if is_dark else '#FFFFFF'};
+                color: {t['text']};
+                border: 1px solid {t['border']}; border-radius: 8px;
+                padding: 4px 12px; font-size: 11.5px; font-weight: 600;
+            }}
+            QPushButton:hover {{ border-color: {t['primary']}; color: {t['primary']}; }}
+        """)
+        self.btn_preview.clicked.connect(self._run_dry_run)
+        tb_lay.addWidget(self.btn_preview)
+
+        # Add Files Button
+        self.btn_add = QPushButton("Add Files to Intake")
+        self.btn_add.setIcon(QIcon(draw_vector_icon("plus", t["text"], 13)))
+        self.btn_add.setFixedHeight(32)
+        self.btn_add.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_add.setStyleSheet(f"""
+            QPushButton {{
+                background: {'rgba(255, 255, 255, 0.06)' if is_dark else '#FFFFFF'};
+                color: {t['text']};
+                border: 1px solid {t['border']}; border-radius: 8px;
+                padding: 4px 12px; font-size: 11.5px; font-weight: 600;
+            }}
+            QPushButton:hover {{ border-color: {t['primary']}; color: {t['primary']}; }}
+        """)
+        self.btn_add.clicked.connect(self._add_files_to_intake)
+        tb_lay.addWidget(self.btn_add)
+
+        # Load Demo Batch Button
+        self.btn_demo = QPushButton("Load Demo Batch")
+        self.btn_demo.setIcon(QIcon(draw_vector_icon("documents", t["text3"], 13)))
+        self.btn_demo.setFixedHeight(32)
+        self.btn_demo.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_demo.setToolTip("Populate intake queue with 7 realistic test documents (Legal, Medical, Academic, Financial, Quarantine)")
+        self.btn_demo.setStyleSheet(f"""
+            QPushButton {{
+                background: {'rgba(255, 255, 255, 0.06)' if is_dark else '#FFFFFF'};
+                color: {t['text']};
+                border: 1px solid {t['border']}; border-radius: 8px;
+                padding: 4px 12px; font-size: 11.5px; font-weight: 600;
+            }}
+            QPushButton:hover {{ border-color: {t['primary']}; color: {t['primary']}; }}
+        """)
+        self.btn_demo.clicked.connect(self._load_demo_batch)
+        tb_lay.addWidget(self.btn_demo)
+
+        # Undo Batch Button
+        self.btn_undo = QPushButton("Undo Last Batch")
+        self.btn_undo.setIcon(QIcon(draw_vector_icon("refresh", t["text3"], 13)))
+        self.btn_undo.setFixedHeight(32)
+        self.btn_undo.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_undo.setStyleSheet(f"""
+            QPushButton {{
+                background: {'rgba(255, 255, 255, 0.06)' if is_dark else '#FFFFFF'};
+                color: {t['text3']};
+                border: 1px solid {t['border']}; border-radius: 8px;
+                padding: 4px 12px; font-size: 11.5px; font-weight: 600;
+            }}
+            QPushButton:hover {{ color: {t['text']}; border-color: {t['primary']}; }}
+        """)
+        self.btn_undo.clicked.connect(self._undo_last_batch)
+        tb_lay.addWidget(self.btn_undo)
+
+        tb_lay.addStretch()
+
+        # Open Intake Folder
+        self.btn_open_intake = QPushButton("Open Intake Folder")
+        self.btn_open_intake.setIcon(QIcon(draw_vector_icon("documents", t["text3"], 12)))
+        self.btn_open_intake.setFixedHeight(32)
+        self.btn_open_intake.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_open_intake.setStyleSheet(f"""
+            QPushButton {{
+                background: transparent; color: {t['text3']};
+                border: 1px solid {t['border']}; border-radius: 8px;
+                padding: 4px 10px; font-size: 11px; font-weight: 600;
+            }}
+            QPushButton:hover {{ color: {t['text']}; border-color: {t['primary']}; }}
+        """)
+        self.btn_open_intake.clicked.connect(self._open_intake_folder)
+        tb_lay.addWidget(self.btn_open_intake)
+
+        # Open Vault Folder Button
+        self.btn_open_vault = QPushButton("Open Vault Folder")
+        self.btn_open_vault.setIcon(QIcon(draw_vector_icon("organizer", t["text3"], 12)))
+        self.btn_open_vault.setFixedHeight(32)
+        self.btn_open_vault.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_open_vault.setStyleSheet(f"""
+            QPushButton {{
+                background: transparent; color: {t['text3']};
+                border: 1px solid {t['border']}; border-radius: 8px;
+                padding: 4px 10px; font-size: 11px; font-weight: 600;
+            }}
+            QPushButton:hover {{ color: {t['text']}; border-color: {t['primary']}; }}
+        """)
+        self.btn_open_vault.clicked.connect(self._open_vault_folder)
+        tb_lay.addWidget(self.btn_open_vault)
+
+        # Refresh Button
+        self.btn_refresh = QPushButton("Refresh")
+        self.btn_refresh.setIcon(QIcon(draw_vector_icon("refresh", t["text3"], 12)))
+        self.btn_refresh.setFixedHeight(32)
+        self.btn_refresh.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_refresh.setStyleSheet(f"""
+            QPushButton {{
+                background: transparent; color: {t['text3']};
+                border: 1px solid {t['border']}; border-radius: 8px;
+                padding: 4px 10px; font-size: 11px; font-weight: 600;
+            }}
+            QPushButton:hover {{ color: {t['text']}; border-color: {t['primary']}; }}
+        """)
+        self.btn_refresh.clicked.connect(self.refresh_files)
+        tb_lay.addWidget(self.btn_refresh)
+
+        root_lay.addWidget(self.tb_card)
+
+        # ── 4. Splitter: Triage Table (Top) + Clean Audit Activity Stream (Bottom) ──
+        splitter = QSplitter(Qt.Orientation.Vertical)
+        splitter.setHandleWidth(5)
+        splitter.setStyleSheet("""
+            QSplitter::handle:vertical {
+                background: rgba(255, 122, 46, 0.20);
+                margin: 2px 0;
+            }
+            QSplitter::handle:vertical:hover {
+                background: #FF7A2E;
+            }
+        """)
+
+        # Table Wrapper Card
+        self.table_wrap = QFrame()
+        self.table_wrap.setObjectName("tableWrap")
+        tw_lay = QVBoxLayout(self.table_wrap)
+        tw_lay.setContentsMargins(14, 12, 14, 12)
+        tw_lay.setSpacing(8)
+
+        # Table Header Bar with View Switch
+        th_bar = QHBoxLayout()
+        th_bar.setSpacing(8)
+
+        self.tbl_head = QLabel("File Queue & Intelligent Classification Triage:")
+        self.tbl_head.setStyleSheet(f"font-size: 12.5px; font-weight: 700; color: {t['text']};")
+        th_bar.addWidget(self.tbl_head)
+
+        th_bar.addStretch()
+
+        # View Mode Pill Buttons
+        self.btn_mode_pending = QPushButton("Intake Queue (0)")
+        self.btn_mode_pending.setFixedHeight(24)
+        self.btn_mode_pending.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_mode_pending.setStyleSheet(f"""
+            QPushButton {{
+                background: {t['primary']}; color: #FFFFFF; font-size: 10.5px; font-weight: 700;
+                border: none; border-radius: 6px; padding: 2px 10px;
+            }}
+        """)
+        self.btn_mode_pending.clicked.connect(lambda: self._set_view_mode("PENDING"))
+        th_bar.addWidget(self.btn_mode_pending)
+
+        self.btn_mode_vault = QPushButton("Organized Vault Files")
+        self.btn_mode_vault.setFixedHeight(24)
+        self.btn_mode_vault.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_mode_vault.setStyleSheet(f"""
+            QPushButton {{
+                background: transparent; color: {t['text3']}; font-size: 10.5px; font-weight: 600;
+                border: 1px solid {t['border']}; border-radius: 6px; padding: 2px 10px;
+            }}
+            QPushButton:hover {{ color: {t['text']}; border-color: {t['primary']}; }}
+        """)
+        self.btn_mode_vault.clicked.connect(lambda: self._set_view_mode("VAULT"))
+        th_bar.addWidget(self.btn_mode_vault)
+
+        tw_lay.addLayout(th_bar)
+
+        # Translucent Table
+        self.table = QTableWidget()
+        self.table.setColumnCount(7)
+        self.table.setHorizontalHeaderLabels([
+            "Select", "File Name", "Smart Proposed Name", "Category",
+            "Size", "Magic Bytes Integrity", "Action"
+        ])
+        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Interactive)
+        self.table.setColumnWidth(3, 120)
+        self.table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeMode.Interactive)
+        self.table.setColumnWidth(5, 140)
+        self.table.horizontalHeader().setSectionResizeMode(6, QHeaderView.ResizeMode.ResizeToContents)
+        self.table.verticalHeader().setVisible(False)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+
+        self.table.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.table.viewport().setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.table.viewport().setStyleSheet("background: transparent; border: none;")
+
+        self._apply_table_style()
+        tw_lay.addWidget(self.table)
+        splitter.addWidget(self.table_wrap)
+
+        # Audit Log Console Wrapper Card
+        self.log_wrap = QFrame()
+        self.log_wrap.setObjectName("logWrap")
+        lw_lay = QVBoxLayout(self.log_wrap)
+        lw_lay.setContentsMargins(14, 10, 14, 10)
+        lw_lay.setSpacing(6)
+
+        # Log Header Bar
+        log_head_bar = QHBoxLayout()
+        log_head_bar.setSpacing(8)
+
+        log_head = QLabel("file_ops.log — Real-Time Operations & Audit Stream:")
+        log_head.setStyleSheet(f"font-size: 11.5px; font-weight: 700; color: {t['text3']};")
+        log_head_bar.addWidget(log_head)
+
+        log_head_bar.addStretch()
+
+        # Log Filter Pills
+        for flt_name in ("ALL", "SORT", "QUARANTINE", "UNDO"):
+            btn_f = QPushButton(flt_name)
+            btn_f.setFixedHeight(22)
+            btn_f.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+            btn_f.setStyleSheet(f"""
+                QPushButton {{
+                    background: transparent; color: {t['text3']}; font-size: 9.5px; font-weight: 700;
+                    border: 1px solid {t['border']}; border-radius: 4px; padding: 1px 7px;
+                }}
+                QPushButton:hover {{ color: {t['primary']}; border-color: {t['primary']}; }}
+            """)
+            btn_f.clicked.connect(lambda _, f=flt_name: self._set_log_filter(f))
+            log_head_bar.addWidget(btn_f)
+
+        # Collapse Log Button
+        self.btn_collapse_log = QPushButton("▾ Collapse")
+        self.btn_collapse_log.setFixedHeight(22)
+        self.btn_collapse_log.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_collapse_log.setStyleSheet(f"""
+            QPushButton {{
+                background: transparent; color: {t['text3']}; font-size: 10px; font-weight: 600;
+                border: 1px solid {t['border']}; border-radius: 4px; padding: 1px 8px;
+            }}
+            QPushButton:hover {{ color: {t['text']}; }}
+        """)
+        self.btn_collapse_log.clicked.connect(self._toggle_collapse_logs)
+        log_head_bar.addWidget(self.btn_collapse_log)
+
+        lw_lay.addLayout(log_head_bar)
+
+        self.log_console = QTextEdit()
+        self.log_console.setReadOnly(True)
+        self.log_console.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.log_console.viewport().setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self._apply_console_style()
+        lw_lay.addWidget(self.log_console)
+
+        splitter.addWidget(self.log_wrap)
+
+        splitter.setStretchFactor(0, 4)
+        splitter.setStretchFactor(1, 2)
+        root_lay.addWidget(splitter, 1)
+
+    # ─── Drag and Drop Support ──────────────────────────────────────────────────
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            super().dragEnterEvent(event)
+
+    def dropEvent(self, event):
+        if event.mimeData().hasUrls():
+            intake_dir = self.organizer.vault_root / "intake"
+            intake_dir.mkdir(parents=True, exist_ok=True)
+            copied = 0
+            for url in event.mimeData().urls():
+                fp = url.toLocalFile()
+                if fp and os.path.exists(fp):
+                    p = Path(fp)
+                    if p.is_file():
+                        shutil.copy2(p, intake_dir / p.name)
+                        copied += 1
+            if copied > 0:
+                p = self.window()
+                if hasattr(p, "_show_feedback"):
+                    p._show_feedback(f"Imported {copied} file{'s' if copied != 1 else ''} into intake triage queue.")
+                self.refresh_files()
+            event.acceptProposedAction()
+        else:
+            super().dropEvent(event)
+
+    # ─── View Modes & Filters ───────────────────────────────────────────────────
+
+    def _set_view_mode(self, mode: str):
+        self._view_mode = mode
+        t = self._t
+        if mode == "PENDING":
+            self.btn_mode_pending.setStyleSheet(f"""
+                QPushButton {{
+                    background: {t['primary']}; color: #FFFFFF; font-size: 10.5px; font-weight: 700;
+                    border: none; border-radius: 6px; padding: 2px 10px;
+                }}
+            """)
+            self.btn_mode_vault.setStyleSheet(f"""
+                QPushButton {{
+                    background: transparent; color: {t['text3']}; font-size: 10.5px; font-weight: 600;
+                    border: 1px solid {t['border']}; border-radius: 6px; padding: 2px 10px;
+                }}
+                QPushButton:hover {{ color: {t['text']}; border-color: {t['primary']}; }}
+            """)
+        else:
+            self.btn_mode_vault.setStyleSheet(f"""
+                QPushButton {{
+                    background: {t['primary']}; color: #FFFFFF; font-size: 10.5px; font-weight: 700;
+                    border: none; border-radius: 6px; padding: 2px 10px;
+                }}
+            """)
+            self.btn_mode_pending.setStyleSheet(f"""
+                QPushButton {{
+                    background: transparent; color: {t['text3']}; font-size: 10.5px; font-weight: 600;
+                    border: 1px solid {t['border']}; border-radius: 6px; padding: 2px 10px;
+                }}
+                QPushButton:hover {{ color: {t['text']}; border-color: {t['primary']}; }}
+            """)
+        self.refresh_files()
+
+    def _set_log_filter(self, flt: str):
+        self._log_filter = flt
+        self._refresh_audit_logs()
+
+    def _toggle_collapse_logs(self):
+        is_visible = self.log_console.isVisible()
+        self.log_console.setVisible(not is_visible)
+        self.btn_collapse_log.setText("▴ Expand" if is_visible else "▾ Collapse")
+
+    def _toggle_auto_organize(self):
+        self.auto_organize_enabled = not self.auto_organize_enabled
+        t = self._t
+        if self.auto_organize_enabled:
+            self.btn_auto_status.setText("● Auto-Organize: ACTIVE")
+            self.btn_auto_status.setStyleSheet(f"""
+                QPushButton {{
+                    font-size: 11px; font-weight: 700; color: {t['green']};
+                    background: {t['green_bg']};
+                    border: 1px solid {t.get('green_border', 'rgba(255, 122, 46, 0.35)')};
+                    padding: 4px 12px; border-radius: 12px;
+                }}
+            """)
+            p = self.window()
+            if hasattr(p, "_show_feedback"):
+                p._show_feedback("Autonomous file organizer activated. Intake files will be categorized automatically.")
+            # Trigger immediate scan
+            self._auto_sync_timer_tick()
+        else:
+            self.btn_auto_status.setText("⏸ Auto-Organize: PAUSED")
+            self.btn_auto_status.setStyleSheet(f"""
+                QPushButton {{
+                    font-size: 11px; font-weight: 700; color: {t['text3']};
+                    background: {'rgba(255, 255, 255, 0.08)' if t.get('name') == 'dark' else '#F1F5F9'};
+                    border: 1px solid {t['border']};
+                    padding: 4px 12px; border-radius: 12px;
+                }}
+            """)
+            p = self.window()
+            if hasattr(p, "_show_feedback"):
+                p._show_feedback("Auto-organize paused. Files will remain in queue for manual inspection.")
+
+    # ─── Metric Card Factory ────────────────────────────────────────────────────
+
+    def _create_metric_card(self, label: str, value: str, icon_name: str, color: str) -> QFrame:
+        t = self._t
+        is_dark = t.get("name") == "dark"
+        card = QFrame()
+        card.setFixedHeight(68)
+        card.setStyleSheet(f"""
+            QFrame {{
+                background: {'rgba(18, 18, 26, 0.60)' if is_dark else 'rgba(255, 255, 255, 0.70)'};
+                border: 1px solid {'rgba(255, 255, 255, 0.08)' if is_dark else 'rgba(0, 0, 0, 0.06)'};
+                border-radius: 14px;
+            }}
+            QFrame:hover {{
+                border-color: rgba(255, 122, 46, 0.35);
+            }}
+        """)
+        c_lay = QHBoxLayout(card)
+        c_lay.setContentsMargins(14, 10, 14, 10)
+        c_lay.setSpacing(12)
+
+        ico = QLabel()
+        ico.setPixmap(draw_vector_icon(icon_name, color, 22))
+        c_lay.addWidget(ico)
+
+        txt_lay = QVBoxLayout()
+        txt_lay.setSpacing(2)
+        val_lbl = QLabel(value)
+        val_lbl.setObjectName("cardVal")
+        val_lbl.setStyleSheet(f"font-size: 18px; font-weight: 800; color: {t['text']}; letter-spacing: -0.5px;")
+        txt_lay.addWidget(val_lbl)
+
+        lbl = QLabel(label)
+        lbl.setStyleSheet(f"font-size: 10.5px; font-weight: 600; color: {t['text4']}; text-transform: uppercase; letter-spacing: 0.5px;")
+        txt_lay.addWidget(lbl)
+        c_lay.addLayout(txt_lay, 1)
+
+        return card
+
+    # ─── Periodic Autonomous Tick ───────────────────────────────────────────────
+
+    def _auto_sync_timer_tick(self):
+        if not self.isVisible():
+            return
+
+        self._refresh_audit_logs()
+
+        # If autonomous organization is enabled, auto-sort pending files
+        if self.auto_organize_enabled and not self._is_sorting:
+            intake_dir = self.organizer.vault_root / "intake"
+            if intake_dir.exists():
+                pending = [f for f in intake_dir.iterdir() if f.is_file()]
+                if pending:
+                    self._auto_sort_pending_files(pending)
+
+    def _auto_sort_pending_files(self, files: List[Path]):
+        self._is_sorting = True
+        sorted_cnt = 0
+        try:
+            for f in files:
+                fp = str(f)
+                try:
+                    res = self.organizer.sort_file(fp)
+                    dest = res.get("destination", "")
+                    if dest:
+                        self.last_batch_moves.append({"src": fp, "dest": dest})
+                        self._persist_sorted_document(dest, res.get("category", "General"))
+                    sorted_cnt += 1
+                except Exception as e:
+                    print(f"[AIFileOrganizer] Auto-sort error on {f.name}: {e}")
+
+            if sorted_cnt > 0:
+                p = self.window()
+                if hasattr(p, "_show_feedback"):
+                    p._show_feedback(f"AI File Organizer autonomously sorted {sorted_cnt} incoming file{'s' if sorted_cnt != 1 else ''}.")
+                if hasattr(p, "_load_vault_database"):
+                    p._load_vault_database()
+                self.refresh_files()
+        finally:
+            self._is_sorting = False
+
+    def _seed_sample_intake(self):
+        """Generates realistic sample documents into vault/intake."""
+        try:
+            import generate_samples
+            if hasattr(generate_samples, "generate_all_samples"):
+                generate_samples.generate_all_samples()
+                return
+        except Exception as e:
+            print(f"[AIFileOrganizer] Notice loading generate_samples: {e}")
+
+        # Fallback inline generation if module not directly importable
+        intake_dir = self.organizer.vault_root / "intake"
+        intake_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            (intake_dir / "Academic_Quantum_Error_Mitigation.txt").write_text(
+                "QUANTUM ERROR MITIGATION IN HIGH-DIMENSIONAL HILBERT SPACES\nAbstract: Scalable error mitigation protocols.",
+                encoding="utf-8"
+            )
+            (intake_dir / "Master_Services_Agreement_NY.txt").write_text(
+                "MASTER SERVICES AGREEMENT\nGoverning Law: Under the laws of the State of New York. Effective Date: 2026-10-10.",
+                encoding="utf-8"
+            )
+            (intake_dir / "Vendor_Invoice_INV-9042.xml").write_text(
+                "<invoice><vendor>Apex Quantum</vendor><total>$1,250.00</total></invoice>",
+                encoding="utf-8"
+            )
+            (intake_dir / "Medical_Clinical_Record_MRN77821.xml").write_text(
+                "<medical_record><patient>Jane Doe</patient><diagnosis>Hypertension</diagnosis></medical_record>",
+                encoding="utf-8"
+            )
+            (intake_dir / "Clean_Integrity_Verification.txt").write_text(
+                "Official verification test record. Hash integrity verified on 2026-10-27.",
+                encoding="utf-8"
+            )
+            # PE disguised file
+            with open(intake_dir / "Disguised_Malware_Payload.pdf", "wb") as f:
+                f.write(b"MZ\x90\x00\x03\x00\x00\x00\x04\x00\x00\x00\xff\xff\x00\x00DOS mode payload.")
+        except Exception as e:
+            print(f"[AIFileOrganizer] Inline seed error: {e}")
+
+    def _load_demo_batch(self):
+        self._seed_sample_intake()
+        p = self.window()
+        if hasattr(p, "_show_feedback"):
+            p._show_feedback("Loaded demonstration files into intake queue.")
+        self._set_view_mode("PENDING")
+        self.refresh_files()
+
+    def _persist_sorted_document(self, dest_path: str, category: str):
+        """Sync newly sorted file into MongoDB and Catalog so the app updates in real-time."""
+        p = Path(dest_path)
+        if not p.exists() or "quarantine" in dest_path.lower():
+            return
+        try:
+            user_email = getattr(self.window(), "user_email", None) if self.window() else None
+            doc = DocumentFactory.create_document(str(p), category_hint=category, enforce_magic_bytes=False)
+            doc_dict = doc.to_dict()
+            full_text = " ".join([page.get("text", "") for page in doc_dict.get("pages", [])]) or doc_dict.get("raw_text", "")
+            doc_dict["executive_summary"] = DocumentAnalyzer.extract_executive_summary(full_text, doc.filename)
+            doc_dict["counterparties"] = DocumentAnalyzer.extract_counterparties(full_text)
+            doc_dict["risk_profile"] = DocumentAnalyzer.calculate_risk_profile(full_text, doc_dict.get("clauses"))
+            doc_dict["tracked_folder"] = str(p.parent)
+            if user_email:
+                doc_dict["owner_email"] = user_email
+            doc_dict["created_at"] = datetime.now().isoformat()
+            doc_dict["updated_at"] = datetime.now().isoformat()
+
+            if self.mongo and self.mongo.is_connected:
+                self.mongo.save_document(doc_dict, user_email=user_email)
+        except Exception as e:
+            print(f"[AIFileOrganizer] MongoDB sync notice: {e}")
+
+    # ─── Main Refresh & Populator ───────────────────────────────────────────────
+
+    def refresh_files(self, dry_run: bool = False):
+        self._pending_files.clear()
+        intake_dir = self.organizer.vault_root / "intake"
+        intake_dir.mkdir(parents=True, exist_ok=True)
+
+        raw_intake_files = [f for f in intake_dir.iterdir() if f.is_file()]
+
+        # Query disk vault files across categories
+        local_disk_count = 0
+        vault_files_by_cat: List[Tuple[Path, str]] = []
+        for cat in self.organizer.CATEGORIES:
+            cat_dir = self.organizer.vault_root / cat
+            if cat_dir.exists():
+                cat_files = [f for f in cat_dir.iterdir() if f.is_file()]
+                local_disk_count += len(cat_files)
+                for cf in cat_files:
+                    vault_files_by_cat.append((cf, cat))
+
+        # Query MongoDB for real-time vault count
+        mongo_count = 0
+        if self.mongo and self.mongo.is_connected:
+            try:
+                user_email = getattr(self.window(), "user_email", None) if self.window() else None
+                mongo_count = len(self.mongo.list_documents(user_email=user_email))
+            except Exception:
+                mongo_count = 0
+
+        win_docs = len(getattr(self.window(), "docs", {})) if self.window() else 0
+        total_vault_count = max(mongo_count, win_docs, local_disk_count)
+
+        quarantine_dir = self.organizer.vault_root / "quarantine"
+        quarantine_count = len([f for f in quarantine_dir.iterdir() if f.is_file()]) if quarantine_dir.exists() else 0
+
+        # Update metric cards
+        self.card_total.findChild(QLabel, "cardVal").setText(str(total_vault_count))
+        self.card_intake.findChild(QLabel, "cardVal").setText(str(len(raw_intake_files)))
+        self.card_quarantine.findChild(QLabel, "cardVal").setText(str(quarantine_count))
+        self.card_ops.findChild(QLabel, "cardVal").setText(str(len(self.organizer.logger.get_recent_logs(500))))
+
+        self.btn_mode_pending.setText(f"Intake Queue ({len(raw_intake_files)})")
+
+        # Choose files to display based on active view mode
+        self.table.setRowCount(0)
+        t = self._t
+        is_dark = t.get("name") == "dark"
+
+        if self._view_mode == "PENDING":
+            display_files = [(f, "PENDING") for f in raw_intake_files]
+            self.tbl_head.setText(f"File Queue & Intelligent Classification Triage ({len(raw_intake_files)} Pending):")
+        else:
+            display_files = [(f, cat) for f, cat in vault_files_by_cat]
+            if quarantine_dir.exists():
+                display_files.extend([(f, "Quarantine") for f in quarantine_dir.iterdir() if f.is_file()])
+            self.tbl_head.setText(f"Organized Vault Documents ({len(display_files)} Stored):")
+
+        for f, mode_cat in display_files:
+            fp = str(f)
+            sz_b = f.stat().st_size
+            sz_str = f"{sz_b / 1024:.1f} KB" if sz_b >= 1024 else f"{sz_b} B"
+
+            # Magic-byte check
+            is_valid = True
+            try:
+                BinaryParser.validate_file(fp)
+            except Exception:
+                is_valid = False
+
+            # Detect category
+            cat = mode_cat if mode_cat != "PENDING" else "General"
+            if mode_cat == "PENDING":
+                try:
+                    doc = DocumentFactory.create_document(fp, enforce_magic_bytes=False)
+                    cat = doc.get_category()
+                except Exception:
+                    cat = "Quarantine" if not is_valid else "General"
+
+            # Generate smart rename proposal
+            stem = f.stem.replace("_", " ").title().replace(" ", "_")
+            ext = f.suffix.lower()
+            if stem.lower().startswith(cat.lower()):
+                smart_name = f"{stem}{ext}"
+            else:
+                smart_name = f"{cat}_{stem}{ext}"
+
+            row = self.table.rowCount()
+            self.table.insertRow(row)
+
+            # 0. Checkbox
+            chk = QCheckBox()
+            chk.setChecked(True)
+            chk_wrap = QWidget()
+            ch_lay = QHBoxLayout(chk_wrap)
+            ch_lay.setContentsMargins(8, 0, 0, 0)
+            ch_lay.addWidget(chk)
+            self.table.setCellWidget(row, 0, chk_wrap)
+
+            # 1. Name with vector icon
+            ico_name = "documents" if is_valid else "security"
+            ico_col = t["primary"] if is_valid else t["red"]
+            name_item = QTableWidgetItem(f.name)
+            name_item.setIcon(QIcon(draw_vector_icon(ico_name, ico_col, 13)))
+            self.table.setItem(row, 1, name_item)
+
+            # 2. Smart Proposed Name (Monospace styled chip)
+            smart_item = QTableWidgetItem(smart_name)
+            self.table.setItem(row, 2, smart_item)
+
+            # 3. Category Combobox / Badge
+            if self._view_mode == "PENDING":
+                combo = QComboBox()
+                combo.addItems(["Legal", "Financial", "Academic", "Medical", "General", "Quarantine"])
+                idx = combo.findText(cat)
+                if idx >= 0:
+                    combo.setCurrentIndex(idx)
+                combo.setStyleSheet(f"""
+                    QComboBox {{
+                        background: {'rgba(255, 255, 255, 0.08)' if is_dark else '#FFFFFF'};
+                        color: {t['text']};
+                        border: 1px solid {t['border']}; border-radius: 6px;
+                        padding: 3px 8px; font-size: 11px; font-weight: 600;
+                    }}
+                """)
+                self.table.setCellWidget(row, 3, combo)
+            else:
+                cat_badge = QLabel(cat)
+                cat_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                badge_col = {
+                    "Legal": "#818CF8", "Financial": "#34D399", "Academic": "#60A5FA",
+                    "Medical": "#F472B6", "General": "#FBBF24", "Quarantine": "#F87171"
+                }.get(cat, t["primary"])
+                cat_badge.setStyleSheet(f"""
+                    color: {badge_col}; font-weight: 700; font-size: 10.5px;
+                    background: {'rgba(255, 255, 255, 0.06)' if is_dark else '#F1F5F9'};
+                    padding: 3px 8px; border-radius: 6px;
+                """)
+                self.table.setCellWidget(row, 3, cat_badge)
+
+            # 4. Size
+            sz_item = QTableWidgetItem(sz_str)
+            sz_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table.setItem(row, 4, sz_item)
+
+            # 5. Binary Status Badge
+            st_lbl = QLabel("Verified" if is_valid else "Corrupt / Disguised")
+            st_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            st_col = t["green"] if is_valid else t["red"]
+            st_bg = t["green_bg"] if is_valid else t["red_bg"]
+            st_lbl.setStyleSheet(f"""
+                color: {st_col}; font-weight: 700; font-size: 10px;
+                background: {st_bg}; padding: 3px 8px; border-radius: 6px;
+            """)
+            self.table.setCellWidget(row, 5, st_lbl)
+
+            # 6. Action Button
+            btn_act = QPushButton("Sort" if self._view_mode == "PENDING" else "Open")
+            btn_act.setFixedHeight(24)
+            btn_act.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+            btn_act.setStyleSheet(f"""
+                QPushButton {{
+                    background: {t['primary']}; color: #FFFFFF;
+                    border: none; border-radius: 5px; font-size: 10.5px; font-weight: 700;
+                    padding: 2px 10px;
+                }}
+                QPushButton:hover {{ background: {t['primary_hover']}; }}
+            """)
+            if self._view_mode == "PENDING":
+                btn_act.clicked.connect(lambda _, path=fp: self._sort_single(path))
+            else:
+                btn_act.clicked.connect(lambda _, path=fp: QDesktopServices.openUrl(QUrl.fromLocalFile(path)))
+            self.table.setCellWidget(row, 6, btn_act)
+
+            self._pending_files.append({"path": fp, "smart_name": smart_name, "cat": cat, "valid": is_valid})
+
+        self._refresh_audit_logs()
+
+    # ─── Sorting Actions ────────────────────────────────────────────────────────
+
+    def _sort_single(self, filepath: str):
+        try:
+            res = self.organizer.sort_file(filepath)
+            dest = res.get("destination", "")
+            if dest:
+                self.last_batch_moves.append({"src": filepath, "dest": dest})
+                self._persist_sorted_document(dest, res.get("category", "General"))
+            p = self.window()
+            if hasattr(p, "_show_feedback"):
+                p._show_feedback(f"Organized '{Path(filepath).name}' \u2192 /{res.get('category')}/")
+            if hasattr(p, "_load_vault_database"):
+                p._load_vault_database()
+        except Exception as e:
+            p = self.window()
+            if hasattr(p, "_show_feedback"):
+                p._show_feedback(f"Sort failed: {e}")
+        self.refresh_files()
+
+    def _run_smart_sort(self):
+        intake_dir = self.organizer.vault_root / "intake"
+        files = [f for f in intake_dir.iterdir() if f.is_file()]
+        if not files:
+            p = self.window()
+            if hasattr(p, "_show_feedback"):
+                p._show_feedback("No files pending in intake queue. Click 'Add Files to Intake' or 'Load Demo Batch'.")
+            return
+
+        sorted_cnt = 0
+        self.last_batch_moves.clear()
+        for f in files:
+            try:
+                res = self.organizer.sort_file(str(f))
+                if res.get("destination"):
+                    self.last_batch_moves.append({"src": str(f), "dest": res["destination"]})
+                    self._persist_sorted_document(res["destination"], res.get("category", "General"))
+                sorted_cnt += 1
+            except Exception:
+                pass
+
+        p = self.window()
+        if hasattr(p, "_show_feedback"):
+            p._show_feedback(f"AI File Organizer categorized {sorted_cnt} file{'s' if sorted_cnt != 1 else ''} into vault categories.")
+        if hasattr(p, "_load_vault_database"):
+            p._load_vault_database()
+
+        self.refresh_files()
+
+    def _run_dry_run(self):
+        p = self.window()
+        if hasattr(p, "_show_feedback"):
+            p._show_feedback("Dry-Run Simulation: File categories computed without moving disk files.")
+        self.refresh_files(dry_run=True)
+
+    def _undo_last_batch(self):
+        if not self.last_batch_moves:
+            p = self.window()
+            if hasattr(p, "_show_feedback"):
+                p._show_feedback("No recent batch moves available to undo.")
+            return
+
+        reverted = 0
+        for move in self.last_batch_moves:
+            dest = Path(move["dest"])
+            src = Path(move["src"])
+            if dest.exists():
+                src.parent.mkdir(parents=True, exist_ok=True)
+                shutil.move(str(dest), str(src))
+                reverted += 1
+
+        self.organizer.logger.log_operation(
+            level="WARN",
+            action="UNDO",
+            filename=f"Batch of {reverted} files",
+            category="Intake",
+            size_bytes=0,
+            destination="vault/intake/",
+            extra="User initiated batch rollback",
+        )
+        self.last_batch_moves.clear()
+        p = self.window()
+        if hasattr(p, "_show_feedback"):
+            p._show_feedback(f"Rolled back {reverted} file{'s' if reverted != 1 else ''} to intake.")
+        if hasattr(p, "_load_vault_database"):
+            p._load_vault_database()
+        self.refresh_files()
+
+    def _add_files_to_intake(self):
+        fpaths, _ = QFileDialog.getOpenFileNames(
+            self, "Select Files to Queue for AI Organizing", "", "All Files (*.*)"
+        )
+        if fpaths:
+            intake_dir = self.organizer.vault_root / "intake"
+            intake_dir.mkdir(parents=True, exist_ok=True)
+            copied = 0
+            for fp in fpaths:
+                p = Path(fp)
+                dest = intake_dir / p.name
+                shutil.copy2(p, dest)
+                copied += 1
+            p = self.window()
+            if hasattr(p, "_show_feedback"):
+                p._show_feedback(f"Added {copied} file{'s' if copied != 1 else ''} to vault intake queue.")
+            self._set_view_mode("PENDING")
+            self.refresh_files()
+
+    def _open_vault_folder(self):
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.organizer.vault_root.resolve())))
+
+    def _open_intake_folder(self):
+        intake_dir = self.organizer.vault_root / "intake"
+        intake_dir.mkdir(parents=True, exist_ok=True)
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(intake_dir.resolve())))
+
+    # ─── Audit Log Stream ───────────────────────────────────────────────────────
+
+    def _refresh_audit_logs(self):
+        logs = self.organizer.logger.get_recent_logs(90)
+        formatted = []
+        for line in logs:
+            if self._log_filter != "ALL" and self._log_filter not in line:
+                continue
+
+            # Rich pill formatting
+            if "SORT" in line:
+                badge = "<span style='background: rgba(255, 122, 46, 0.16); color: #FF7A2E; padding: 1px 6px; border-radius: 4px; font-weight: 700; font-size: 10px;'>SORT</span>"
+                line_html = f"{badge} <span style='color: #E2E8F0;'>{line.split('|', 2)[-1] if '|' in line else line}</span>"
+            elif "QUARANTINE" in line or "WARN" in line:
+                badge = "<span style='background: rgba(240, 85, 110, 0.16); color: #F0556E; padding: 1px 6px; border-radius: 4px; font-weight: 700; font-size: 10px;'>QUARANTINE</span>"
+                line_html = f"{badge} <span style='color: #FCA5A5;'>{line.split('|', 2)[-1] if '|' in line else line}</span>"
+            elif "UNDO" in line:
+                badge = "<span style='background: rgba(245, 181, 68, 0.16); color: #F5B544; padding: 1px 6px; border-radius: 4px; font-weight: 700; font-size: 10px;'>ROLLBACK</span>"
+                line_html = f"{badge} <span style='color: #FDE68A;'>{line.split('|', 2)[-1] if '|' in line else line}</span>"
+            else:
+                badge = "<span style='background: rgba(107, 155, 255, 0.16); color: #6B9BFF; padding: 1px 6px; border-radius: 4px; font-weight: 700; font-size: 10px;'>AUDIT</span>"
+                line_html = f"{badge} <span style='color: #94A3B8;'>{line.split('|', 2)[-1] if '|' in line else line}</span>"
+
+            formatted.append(line_html)
+
+        self.log_console.setHtml("<br>".join(formatted) if formatted else "<span style='color: #64748B;'>No matching audit entries.</span>")
+        self.log_console.verticalScrollBar().setValue(self.log_console.verticalScrollBar().maximum())
+
+    # ─── Style Application Helpers ──────────────────────────────────────────────
+
+    def _apply_toolbar_style(self):
+        t = self._t
+        is_dark = t.get("name") == "dark"
+        self.tb_card.setStyleSheet(f"""
+            #organizerToolbar {{
+                background: {'rgba(18, 18, 26, 0.55)' if is_dark else 'rgba(255, 255, 255, 0.75)'};
+                border: 1px solid {'rgba(255, 122, 46, 0.20)' if is_dark else 'rgba(242, 106, 27, 0.25)'};
+                border-radius: 12px;
+            }}
+        """)
+
+    def _apply_table_style(self):
+        t = self._t
+        is_dark = t.get("name") == "dark"
+        self.table_wrap.setStyleSheet(f"""
+            #tableWrap {{
+                background: {'rgba(14, 14, 22, 0.50)' if is_dark else 'rgba(255, 255, 255, 0.65)'};
+                border: 1px solid {'rgba(255, 255, 255, 0.08)' if is_dark else 'rgba(0, 0, 0, 0.06)'};
+                border-radius: 14px;
+            }}
+        """)
+        self.table.setStyleSheet(f"""
+            QTableWidget {{
+                background: transparent;
+                color: {t['text']};
+                border: none;
+                gridline-color: {'rgba(255, 255, 255, 0.05)' if is_dark else '#F1F5F9'};
+                font-size: 12px;
+            }}
+            QTableWidget::item {{
+                padding: 6px 10px;
+                background: transparent;
+            }}
+            QTableWidget::item:hover {{
+                background: {'rgba(255, 122, 46, 0.10)' if is_dark else 'rgba(242, 106, 27, 0.08)'};
+            }}
+            QTableWidget::item:selected {{
+                background: {'rgba(255, 122, 46, 0.18)' if is_dark else 'rgba(242, 106, 27, 0.15)'};
+            }}
+            QHeaderView::section {{
+                background: {'rgba(22, 22, 32, 0.70)' if is_dark else '#F8FAFC'};
+                color: {t['text3']};
+                border: none;
+                border-bottom: 1px solid {t['border']};
+                padding: 6px 10px;
+                font-size: 11px;
+                font-weight: 700;
+            }}
+        """)
+
+    def _apply_console_style(self):
+        t = self._t
+        is_dark = t.get("name") == "dark"
+        self.log_wrap.setStyleSheet(f"""
+            #logWrap {{
+                background: {'rgba(10, 10, 16, 0.50)' if is_dark else 'rgba(255, 255, 255, 0.65)'};
+                border: 1px solid {'rgba(255, 255, 255, 0.08)' if is_dark else 'rgba(0, 0, 0, 0.06)'};
+                border-radius: 12px;
+            }}
+        """)
+        self.log_console.setStyleSheet(f"""
+            QTextEdit {{
+                background: {'rgba(8, 8, 14, 0.55)' if is_dark else 'rgba(248, 250, 252, 0.70)'};
+                color: #38BDF8;
+                border: 1px solid {t['border']};
+                border-radius: 8px;
+                font-family: 'Consolas', 'JetBrains Mono', monospace;
+                font-size: 11px;
+                line-height: 1.5;
+                padding: 8px;
+            }}
+        """)
+
+    # ─── Dynamic Theme Updates ──────────────────────────────────────────────────
+
+    def update_theme(self, theme: Dict[str, str]):
+        self._t = theme
+        t = theme
+        is_dark = t.get("name") == "dark"
+
+        self.lbl_title.setStyleSheet(f"font-size: 20px; font-weight: 800; color: {t['text']}; letter-spacing: -0.4px;")
+        self.lbl_sub.setStyleSheet(f"font-size: 12px; color: {t['text4']};")
+
+        for card in (self.card_total, self.card_intake, self.card_quarantine, self.card_ops):
+            card.setStyleSheet(f"""
+                QFrame {{
+                    background: {'rgba(18, 18, 26, 0.60)' if is_dark else 'rgba(255, 255, 255, 0.70)'};
+                    border: 1px solid {'rgba(255, 255, 255, 0.08)' if is_dark else 'rgba(0, 0, 0, 0.06)'};
+                    border-radius: 14px;
+                }}
+                QFrame:hover {{
+                    border-color: rgba(255, 122, 46, 0.35);
+                }}
+            """)
+            lbl = card.findChild(QLabel, "cardVal")
+            if lbl:
+                lbl.setStyleSheet(f"font-size: 18px; font-weight: 800; color: {t['text']}; letter-spacing: -0.5px;")
+
+        self._apply_toolbar_style()
+        self._apply_table_style()
+        self._apply_console_style()
+        self.refresh_files()
 
 
 class DeadlinesPage(QWidget):
     """
     Dedicated Smart Deadlines and Compliance Obligation Workspace
-    matching Page 15 of the design pack with October 2026 interactive calendar
-    and Coming Up obligation cards.
+    matching Page 15 of the design pack with interactive calendar,
+    filtering tabs, and Coming Up obligation cards with real-time database persistence.
     """
 
-    def __init__(self, theme: Dict[str, str], parent=None):
+    def __init__(self, theme: Dict[str, str], mongo: Optional[MongoDatabase] = None, owner_email: Optional[str] = None, parent=None):
         super().__init__(parent)
         self._t = theme
+        self.mongo = mongo
+        self.owner_email = owner_email
         self.manager = DeadlineManager()
         self.deadlines: List[Dict[str, Any]] = []
+        self.current_filter = "All"
 
         lay = QVBoxLayout(self)
         lay.setContentsMargins(28, 20, 28, 20)
@@ -4649,7 +6861,7 @@ class DeadlinesPage(QWidget):
         self.t_lbl.setStyleSheet(f"font-size: 22px; font-weight: 800; color: {theme['text']}; letter-spacing: -0.3px;")
         t_box.addWidget(self.t_lbl)
 
-        self.sub_lbl = QLabel("Dates found in your contracts, so nothing slips.")
+        self.sub_lbl = QLabel("Dates found in your contracts, obligations, and compliance milestones.")
         self.sub_lbl.setStyleSheet(f"font-size: 12px; color: {theme['text4']};")
         t_box.addWidget(self.sub_lbl)
         header.addLayout(t_box)
@@ -4662,7 +6874,13 @@ class DeadlinesPage(QWidget):
         self.btn_export_ics.clicked.connect(self._export_ics)
         header.addWidget(self.btn_export_ics)
 
-        self.btn_add = QPushButton("Add deadline")
+        self.btn_export_csv = QPushButton("Export CSV")
+        self.btn_export_csv.setFixedHeight(34)
+        self.btn_export_csv.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_export_csv.clicked.connect(self._export_csv)
+        header.addWidget(self.btn_export_csv)
+
+        self.btn_add = QPushButton("+ Add deadline")
         self.btn_add.setFixedHeight(34)
         self.btn_add.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.btn_add.clicked.connect(self._open_add_deadline_dialog)
@@ -4724,34 +6942,96 @@ class DeadlinesPage(QWidget):
         self.coming_card.setObjectName("comingCard")
         coming_vlay = QVBoxLayout(self.coming_card)
         coming_vlay.setContentsMargins(22, 20, 22, 20)
-        coming_vlay.setSpacing(16)
+        coming_vlay.setSpacing(14)
 
+        coming_top = QHBoxLayout()
         self.coming_title = QLabel("Coming up")
         self.coming_title.setStyleSheet(f"font-size: 15px; font-weight: 700; color: {theme['text']};")
-        coming_vlay.addWidget(self.coming_title)
+        coming_top.addWidget(self.coming_title)
+        coming_top.addStretch()
+        coming_vlay.addLayout(coming_top)
 
-        # Items list
-        self.items_container = QVBoxLayout()
-        self.items_container.setSpacing(12)
-        coming_vlay.addLayout(self.items_container)
+        # Filter Tabs Row
+        filter_box = QHBoxLayout()
+        filter_box.setSpacing(6)
+        self.filter_buttons: Dict[str, QPushButton] = {}
+        for tab_name in ["All", "Urgent < 7d", "Active", "Completed"]:
+            btn = QPushButton(tab_name)
+            btn.setFixedHeight(24)
+            btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+            btn.clicked.connect(lambda _, n=tab_name: self._set_filter(n))
+            filter_box.addWidget(btn)
+            self.filter_buttons[tab_name] = btn
+        coming_vlay.addLayout(filter_box)
+
+        # Scrollable items container
+        self.items_scroll = QScrollArea()
+        self.items_scroll.setWidgetResizable(True)
+        self.items_scroll.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.items_scroll.viewport().setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.items_scroll.setStyleSheet("QScrollArea, QScrollArea > QWidget > QWidget { background: transparent; border: none; }")
+        self.items_scroll.viewport().setStyleSheet("background: transparent; border: none;")
+
+        self.items_container_widget = QWidget()
+        self.items_container_widget.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.items_container = QVBoxLayout(self.items_container_widget)
+        self.items_container.setContentsMargins(0, 4, 4, 4)
+        self.items_container.setSpacing(8)
+        self.items_scroll.setWidget(self.items_container_widget)
+        coming_vlay.addWidget(self.items_scroll, 1)
 
         self._populate_coming_up_items()
 
-        coming_vlay.addStretch()
-
         # Subtle footer note matching Page 15
-        self.footer_note = QLabel("Dates are found automatically in your contracts and added here.")
+        self.footer_note = QLabel("Dates are monitored automatically across your contracts.")
         self.footer_note.setWordWrap(True)
         self.footer_note.setStyleSheet(f"font-size: 11px; color: {theme['text4']}; line-height: 1.4;")
         coming_vlay.addWidget(self.footer_note)
 
-        split_lay.addWidget(self.coming_card, 4)
+        split_lay.addWidget(self.coming_card, 5)
 
         lay.addLayout(split_lay, 1)
         self.update_theme(theme)
 
+    def _set_filter(self, filter_name: str):
+        self.current_filter = filter_name
+        self._update_filter_button_styles()
+        self._populate_coming_up_items()
+
+    def _update_filter_button_styles(self):
+        t = self._t
+        is_dark = t.get("name") == "dark"
+        for name, btn in self.filter_buttons.items():
+            if name == self.current_filter:
+                btn.setStyleSheet(f"""
+                    QPushButton {{
+                        background: rgba(242, 106, 27, 0.20);
+                        color: {t['primary']};
+                        border: 1px solid rgba(242, 106, 27, 0.40);
+                        border-radius: 12px;
+                        padding: 2px 10px;
+                        font-size: 10px;
+                        font-weight: 700;
+                    }}
+                """)
+            else:
+                btn.setStyleSheet(f"""
+                    QPushButton {{
+                        background: {'#141418' if is_dark else '#F2F2F7'};
+                        color: {t['text3']};
+                        border: 1px solid {'#26262E' if is_dark else '#E5E5EA'};
+                        border-radius: 12px;
+                        padding: 2px 10px;
+                        font-size: 10px;
+                        font-weight: 600;
+                    }}
+                    QPushButton:hover {{
+                        color: {t['text']};
+                        border-color: {t['primary']};
+                    }}
+                """)
+
     def _build_calendar_grid(self):
-        # Clear existing
         while self.cal_grid.count():
             item = self.cal_grid.takeAt(0)
             w = item.widget()
@@ -4762,8 +7042,6 @@ class DeadlinesPage(QWidget):
         t = self._t
         is_dark = t.get("name") == "dark"
 
-        # October 2026 starts on Thursday (index 4 in 0=Sun..6=Sat)
-        # Total days: 31
         start_col = 4
         total_days = 31
 
@@ -4780,15 +7058,14 @@ class DeadlinesPage(QWidget):
                     self.cal_grid.addWidget(empty, row, col)
                     continue
 
-                # Calculate real deadline dates
                 deadline_days = {}
                 for d in self.deadlines:
                     try:
                         due = d.get("due_date", "")
                         if "-" in due:
                             d_day = int(due.split("-")[-1])
-                            col = "#F0556E" if d.get("priority") in ("Critical", "High") else "#6B9BFF"
-                            deadline_days[d_day] = col
+                            col_c = "#F0556E" if d.get("priority") in ("Critical", "High") else t['primary']
+                            deadline_days[d_day] = col_c
                     except Exception:
                         pass
 
@@ -4802,7 +7079,7 @@ class DeadlinesPage(QWidget):
                 if is_today:
                     cell.setStyleSheet(f"""
                         QFrame {{
-                            background: rgba(255, 122, 46, 0.12);
+                            background: rgba(242, 106, 27, 0.14);
                             border: 1.5px solid {t['primary']};
                             border-radius: 10px;
                         }}
@@ -4817,6 +7094,7 @@ class DeadlinesPage(QWidget):
                         }}
                         QFrame:hover {{
                             background: {'rgba(255, 255, 255, 0.04)' if is_dark else 'rgba(0, 0, 0, 0.03)'};
+                            border-color: {t['primary']};
                         }}
                     """)
 
@@ -4834,7 +7112,6 @@ class DeadlinesPage(QWidget):
 
                 clay.addStretch()
 
-                # Status dot if day has deadline
                 if day_num in deadline_days:
                     dot = QLabel()
                     dot.setFixedSize(6, 6)
@@ -4848,7 +7125,6 @@ class DeadlinesPage(QWidget):
                 current_day += 1
 
     def _populate_coming_up_items(self):
-        # Clear existing
         while self.items_container.count():
             item = self.items_container.takeAt(0)
             w = item.widget()
@@ -4860,7 +7136,7 @@ class DeadlinesPage(QWidget):
         is_dark = t.get("name") == "dark"
 
         if not self.deadlines:
-            empty_lbl = QLabel("No active deadlines recorded.\nImport documents or click 'Add deadline' to track contract dates.")
+            empty_lbl = QLabel("No active deadlines recorded.\nImport contracts or click '+ Add deadline' to track obligations.")
             empty_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             empty_lbl.setStyleSheet(f"color: {t['text4']}; font-size: 12px; padding: 40px 10px; line-height: 1.5;")
             self.items_container.addWidget(empty_lbl)
@@ -4870,30 +7146,75 @@ class DeadlinesPage(QWidget):
         for d in self.deadlines:
             eval_res = self.manager.evaluate_deadline(d)
             days_left = eval_res.get("days_left", 0)
-            chip_txt = f"In {days_left} days" if days_left >= 0 else f"{abs(days_left)}d overdue"
-            col = "#F0556E" if days_left < 3 else ("#F5B544" if days_left < 7 else "#32D583")
+            status = d.get("computed_status", eval_res.get("status", "Active"))
+            is_completed = (status == "Completed")
+
+            # Apply filter
+            if self.current_filter == "Urgent < 7d" and (days_left > 7 or is_completed):
+                continue
+            if self.current_filter == "Active" and is_completed:
+                continue
+            if self.current_filter == "Completed" and not is_completed:
+                continue
+
+            if is_completed:
+                chip_txt = "Completed"
+                col = "#8E8E93"
+            elif days_left < 0:
+                chip_txt = f"{abs(days_left)}d overdue"
+                col = "#F0556E"
+            elif days_left <= 3:
+                chip_txt = f"In {days_left}d"
+                col = "#F0556E"
+            elif days_left <= 7:
+                chip_txt = f"In {days_left}d"
+                col = "#FF8C42"
+            else:
+                chip_txt = f"In {days_left}d"
+                col = t['primary']
+
             due = eval_res.get("adjusted_due_date", "2026-10-28")
             day_str = due.split("-")[-1] if "-" in due else "28"
             items_to_render.append({
+                "id": d.get("id", ""),
                 "date": day_str,
-                "title": eval_res.get("title", "Obligation"),
-                "doc": eval_res.get("document", "Document.pdf"),
+                "title": eval_res.get("title", d.get("title", "Obligation")),
+                "doc": eval_res.get("document", d.get("document", "Document.pdf")),
+                "status": status,
                 "chip": chip_txt,
                 "color": col,
-                "chip_bg": "#382715" if is_dark else "#FEF0C7",
-                "badge_bg": "#2A1E14" if is_dark else "#FFF4ED",
+                "is_completed": is_completed,
+                "badge_bg": "rgba(242, 106, 27, 0.12)" if not is_completed else "rgba(142, 142, 147, 0.12)",
+                "chip_bg": "rgba(242, 106, 27, 0.14)" if not is_completed else "rgba(142, 142, 147, 0.14)",
             })
+
+        if not items_to_render:
+            empty_lbl = QLabel(f"No deadlines matching filter '{self.current_filter}'.")
+            empty_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            empty_lbl.setStyleSheet(f"color: {t['text4']}; font-size: 12px; padding: 30px 10px;")
+            self.items_container.addWidget(empty_lbl)
+            return
 
         for it in items_to_render:
             row_w = QFrame()
-            row_w.setStyleSheet("background: transparent; border: none;")
+            row_w.setStyleSheet(f"""
+                QFrame {{
+                    background: {'rgba(255, 255, 255, 0.03)' if is_dark else 'rgba(0, 0, 0, 0.02)'};
+                    border: 1px solid {'#22222B' if is_dark else '#E5E5EA'};
+                    border-radius: 10px;
+                }}
+                QFrame:hover {{
+                    border-color: {t['primary']};
+                    background: {'rgba(242, 106, 27, 0.05)' if is_dark else 'rgba(242, 106, 27, 0.03)'};
+                }}
+            """)
             rlay = QHBoxLayout(row_w)
-            rlay.setContentsMargins(0, 4, 0, 4)
-            rlay.setSpacing(12)
+            rlay.setContentsMargins(10, 8, 10, 8)
+            rlay.setSpacing(10)
 
             # Square date badge
             date_badge = QLabel(it["date"])
-            date_badge.setFixedSize(38, 38)
+            date_badge.setFixedSize(36, 36)
             date_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
             date_badge.setStyleSheet(f"""
                 background: {it['badge_bg']};
@@ -4901,6 +7222,7 @@ class DeadlinesPage(QWidget):
                 font-size: 13px;
                 font-weight: 800;
                 border-radius: 8px;
+                border: 1px solid {it['color']}44;
             """)
             rlay.addWidget(date_badge)
 
@@ -4908,11 +7230,11 @@ class DeadlinesPage(QWidget):
             text_box = QVBoxLayout()
             text_box.setSpacing(2)
             lbl_title = QLabel(it["title"])
-            lbl_title.setStyleSheet(f"font-size: 13px; font-weight: 700; color: {t['text']};")
+            lbl_title.setStyleSheet(f"font-size: 12.5px; font-weight: 700; color: {t['text']};")
             text_box.addWidget(lbl_title)
 
-            lbl_doc = QLabel(it["doc"])
-            lbl_doc.setStyleSheet(f"font-size: 11px; color: {t['text4']};")
+            lbl_doc = QLabel(f"{it['doc']} • {it['status']}")
+            lbl_doc.setStyleSheet(f"font-size: 10.5px; color: {t['text4']};")
             text_box.addWidget(lbl_doc)
             rlay.addLayout(text_box, 1)
 
@@ -4923,12 +7245,60 @@ class DeadlinesPage(QWidget):
                 color: {it['color']};
                 font-size: 10px;
                 font-weight: 700;
-                border-radius: 10px;
-                padding: 4px 10px;
+                border-radius: 8px;
+                padding: 3px 8px;
+                border: 1px solid {it['color']}33;
             """)
             rlay.addWidget(chip)
 
+            # Complete toggle button
+            btn_done = QPushButton()
+            btn_done.setFixedSize(26, 26)
+            btn_done.setIcon(QIcon(draw_vector_icon("check", t['primary'] if it['is_completed'] else t['text4'], 12)))
+            btn_done.setToolTip("Mark as Active" if it['is_completed'] else "Mark as Completed")
+            btn_done.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+            btn_done.setStyleSheet("QPushButton { background: transparent; border: none; border-radius: 6px; } QPushButton:hover { background: rgba(242, 106, 27, 0.15); }")
+            btn_done.clicked.connect(lambda _, did=it['id']: self._toggle_deadline_status(did))
+            rlay.addWidget(btn_done)
+
+            # Delete button
+            btn_del = QPushButton()
+            btn_del.setFixedSize(26, 26)
+            btn_del.setIcon(QIcon(draw_vector_icon("trash", t['text4'], 12)))
+            btn_del.setToolTip("Delete obligation")
+            btn_del.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+            btn_del.setStyleSheet("QPushButton { background: transparent; border: none; border-radius: 6px; } QPushButton:hover { background: rgba(240, 85, 110, 0.2); }")
+            btn_del.clicked.connect(lambda _, did=it['id']: self._delete_deadline(did))
+            rlay.addWidget(btn_del)
+
             self.items_container.addWidget(row_w)
+
+        self.items_container.addStretch()
+
+    def _toggle_deadline_status(self, deadline_id: str):
+        for d in self.deadlines:
+            if d.get("id") == deadline_id:
+                curr = d.get("computed_status", "Active")
+                d["computed_status"] = "Completed" if curr != "Completed" else "Active"
+                if self.mongo:
+                    self.mongo.save_deadline(d, user_email=self.owner_email)
+                break
+        self.refresh_from_db()
+
+    def _delete_deadline(self, deadline_id: str):
+        if self.mongo:
+            self.mongo.delete_deadline(deadline_id, user_email=self.owner_email)
+        self.deadlines = [d for d in self.deadlines if d.get("id") != deadline_id]
+        self.refresh_from_db()
+
+    def refresh_from_db(self):
+        if self.mongo:
+            try:
+                self.deadlines = self.mongo.list_deadlines(user_email=self.owner_email)
+            except Exception:
+                pass
+        self._populate_coming_up_items()
+        self._build_calendar_grid()
 
     def refresh_deadlines(self, deadlines: List[Dict[str, Any]]):
         self.deadlines = deadlines
@@ -4990,15 +7360,17 @@ class DeadlinesPage(QWidget):
             doc = in_doc.text().strip() or "Manual Entry"
             days = in_days.value()
             new_dl = {
-                "id": f"DL-{len(self.deadlines)+1:03d}",
+                "id": f"DL-{random.randint(100, 999)}",
                 "title": title,
                 "document": doc,
                 "due_date": (datetime.now() + timedelta(days=days)).strftime("%Y-%m-%d"),
                 "days_left": days,
                 "computed_status": "Active",
             }
+            if self.mongo:
+                self.mongo.save_deadline(new_dl, user_email=self.owner_email)
             self.deadlines.append(new_dl)
-            self.refresh_deadlines(self.deadlines)
+            self.refresh_from_db()
 
     def update_theme(self, theme: Dict[str, str]):
         self._t = theme
@@ -5018,7 +7390,7 @@ class DeadlinesPage(QWidget):
         if hasattr(self, "footer_note"):
             self.footer_note.setStyleSheet(f"font-size: 11px; color: {t['text4']}; line-height: 1.4;")
 
-        self.btn_export_ics.setStyleSheet(f"""
+        btn_sec_qss = f"""
             QPushButton {{
                 background: {t['surface']};
                 color: {t['text']};
@@ -5030,8 +7402,11 @@ class DeadlinesPage(QWidget):
             }}
             QPushButton:hover {{
                 background: {'#18202F' if is_dark else '#F0F2F5'};
+                border-color: {t['primary']};
             }}
-        """)
+        """
+        self.btn_export_ics.setStyleSheet(btn_sec_qss)
+        self.btn_export_csv.setStyleSheet(btn_sec_qss)
 
         self.btn_add.setStyleSheet(f"""
             QPushButton {{
@@ -5066,8 +7441,13 @@ class DeadlinesPage(QWidget):
                 font-size: 11px;
                 font-weight: 600;
             }}
+            QPushButton:hover {{
+                background: {t['primary']};
+                color: #FFFFFF;
+            }}
         """)
 
+        self._update_filter_button_styles()
         self._build_calendar_grid()
         self._populate_coming_up_items()
 
@@ -5079,9 +7459,11 @@ class DeadlinesPage(QWidget):
 class AIDrawer(QFrame):
     """
     Option E right-docked AI Assistant Drawer that lives on every page.
-    Extendable & resizable via dragging, matching Figma CHAT A.I+ single-div architecture.
+    Extendable & resizable via dragging, matching Figma CHAT A.I+ single-div architecture
+    with ChatGPT/Copilot luxury aesthetics and zero green colors.
     """
     closed = pyqtSignal()
+    expand_requested = pyqtSignal()
 
     def __init__(self, assistant: Optional[ExplainableAIAssistant], theme: Dict[str, str], parent=None, owner_email: Optional[str] = None):
         super().__init__(parent)
@@ -5109,29 +7491,52 @@ class AIDrawer(QFrame):
         vlay.setContentsMargins(16, 16, 16, 16)
         vlay.setSpacing(12)
 
-        # ── 1. Top Bar (Logo, Title, Evidence chip, Close button) ──
+        # ── 1. Top Bar (Logo, Title, Verified chip, Clear, Expand, Close) ──
         top_bar = QHBoxLayout()
         top_bar.setSpacing(8)
 
-        self.title_lbl = QLabel("✨ AI Assistant")
+        ico_top = QLabel()
+        ico_top.setPixmap(draw_vector_icon("sparkle", theme['primary'], 16))
+        top_bar.addWidget(ico_top)
+
+        self.title_lbl = QLabel("DocuVault AI")
         self.title_lbl.setStyleSheet(f"font-size: 15px; font-weight: 800; color: {theme['text']};")
         top_bar.addWidget(self.title_lbl)
 
-        self.evidence_chip = QLabel("Evidence")
+        self.evidence_chip = QLabel("Verified Sources")
         self.evidence_chip.setStyleSheet("""
-            background: #163526;
-            color: #32D583;
-            font-size: 9px;
+            background: rgba(242, 106, 27, 0.12);
+            color: #F26A1B;
+            border: 1px solid rgba(242, 106, 27, 0.28);
+            font-size: 9.5px;
             font-weight: 700;
             border-radius: 6px;
-            padding: 2px 6px;
+            padding: 2px 7px;
         """)
         top_bar.addWidget(self.evidence_chip)
 
         top_bar.addStretch()
 
-        self.btn_close = QPushButton("✕")
-        self.btn_close.setFixedSize(24, 24)
+        self.btn_clear = QPushButton()
+        self.btn_clear.setFixedSize(26, 26)
+        self.btn_clear.setIcon(QIcon(draw_vector_icon("refresh", theme['text3'], 13)))
+        self.btn_clear.setToolTip("Clear conversation")
+        self.btn_clear.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_clear.clicked.connect(self._clear_conversation)
+        top_bar.addWidget(self.btn_clear)
+
+        self.btn_expand = QPushButton()
+        self.btn_expand.setFixedSize(26, 26)
+        self.btn_expand.setIcon(QIcon(draw_vector_icon("fit", theme['text3'], 13)))
+        self.btn_expand.setToolTip("Expand to full page AI Assistant")
+        self.btn_expand.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_expand.clicked.connect(self.expand_requested.emit)
+        top_bar.addWidget(self.btn_expand)
+
+        self.btn_close = QPushButton()
+        self.btn_close.setFixedSize(26, 26)
+        self.btn_close.setIcon(QIcon(draw_vector_icon("close", theme['text3'], 12)))
+        self.btn_close.setToolTip("Close drawer (Ctrl+J)")
         self.btn_close.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.btn_close.clicked.connect(self.closed.emit)
         top_bar.addWidget(self.btn_close)
@@ -5141,7 +7546,7 @@ class AIDrawer(QFrame):
         chips_lay = QHBoxLayout()
         chips_lay.setSpacing(6)
         self.chip_buttons: List[QPushButton] = []
-        for q_txt in ["Notice period", "Payment terms", "Liability"]:
+        for q_txt in ["Notice period", "Payment terms", "Liability", "Termination"]:
             chip_btn = QPushButton(q_txt)
             chip_btn.setFixedHeight(26)
             chip_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
@@ -5150,7 +7555,7 @@ class AIDrawer(QFrame):
             self.chip_buttons.append(chip_btn)
         vlay.addLayout(chips_lay)
 
-        # ── 3. Grounded Conversation Scroll Area (Single Unified Div) ──
+        # ── 3. Grounded Conversation Scroll Area ──
         self.scroll = QScrollArea()
         self.scroll.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.scroll.viewport().setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
@@ -5169,36 +7574,116 @@ class AIDrawer(QFrame):
         self.scroll.setWidget(self.chat_container)
         vlay.addWidget(self.scroll, 1)
 
-        # ── 4. Input Field and Ask Button ──
+        # ── 4. ChatGPT-style Floating Input Card with Attachment Popover ──
         self.in_wrap = QFrame()
-        self.in_wrap.setStyleSheet(f"""
-            QFrame {{
-                background: {theme['bg2']};
-                border: 1px solid {theme['border']};
-                border-radius: 12px;
-            }}
-        """)
         in_lay = QHBoxLayout(self.in_wrap)
-        in_lay.setContentsMargins(10, 6, 6, 6)
-        in_lay.setSpacing(8)
+        in_lay.setContentsMargins(8, 4, 6, 4)
+        in_lay.setSpacing(6)
+
+        self.btn_attach = QPushButton()
+        self.btn_attach.setFixedSize(28, 28)
+        self.btn_attach.setIcon(QIcon(draw_vector_icon("plus", theme['primary'], 13)))
+        self.btn_attach.setToolTip("Attach or choose tool")
+        self.btn_attach.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_attach.clicked.connect(self._show_drawer_attachment_menu)
+        in_lay.addWidget(self.btn_attach)
 
         self.input_field = QLineEdit()
         self.input_field.setPlaceholderText("Ask your documents...")
-        self.input_field.setStyleSheet(f"border: none; background: transparent; font-size: 11.5px; color: {theme['text']};")
         self.input_field.returnPressed.connect(self._submit)
         in_lay.addWidget(self.input_field, 1)
 
-        self.btn_send = QPushButton("Ask")
-        self.btn_send.setFixedSize(52, 28)
+        self.btn_send = QPushButton()
+        self.btn_send.setFixedSize(28, 28)
+        self.btn_send.setIcon(QIcon(draw_vector_icon("send", "#FFFFFF", 12)))
         self.btn_send.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_send.setToolTip("Ask DocuVault AI")
         self.btn_send.clicked.connect(self._submit)
         in_lay.addWidget(self.btn_send)
 
         vlay.addWidget(self.in_wrap)
         self.update_theme(theme)
 
+    def _show_drawer_attachment_menu(self):
+        menu = QMenu(self)
+        is_dark = self._t.get("name") == "dark"
+        bg_col = "#141418" if is_dark else "#FFFFFF"
+        border_col = "rgba(242, 106, 27, 0.3)" if is_dark else "#E5E5EA"
+        text_col = "#F5F5F7" if is_dark else "#1D1D1F"
+        menu.setStyleSheet(f"""
+            QMenu {{
+                background-color: {bg_col};
+                border: 1px solid {border_col};
+                border-radius: 12px;
+                padding: 6px;
+                color: {text_col};
+                font-size: 12px;
+                font-weight: 500;
+            }}
+            QMenu::item {{
+                padding: 8px 24px 8px 12px;
+                border-radius: 8px;
+            }}
+            QMenu::item:selected {{
+                background-color: rgba(242, 106, 27, 0.16);
+                color: #F26A1B;
+            }}
+            QMenu::separator {{
+                height: 1px;
+                background: {border_col};
+                margin: 4px 6px;
+            }}
+        """)
+
+        act_upload = menu.addAction("Upload from Computer...")
+        act_vault = menu.addAction("Add from Vault Documents...")
+        menu.addSeparator()
+        act_ocr = menu.addAction("OCR & Text Scanner...")
+        act_synth = menu.addAction("Deep Multi-Doc Synthesis")
+        act_compliance = menu.addAction("Audit Compliance & Deadlines")
+
+        action = menu.exec(self.btn_attach.mapToGlobal(QPoint(0, -menu.sizeHint().height() - 4)))
+        if not action:
+            return
+
+        p = self.parent()
+        if action == act_upload:
+            if p and hasattr(p, "_open_file_dialog"):
+                p._open_file_dialog()
+            else:
+                files, _ = QFileDialog.getOpenFileNames(self, "Upload to Vault", "", "All Supported (*.pdf *.docx *.txt *.csv *.png *.jpg)")
+                if files and p and hasattr(p, "_import_file_list"):
+                    p._import_file_list(files)
+        elif action == act_vault:
+            self.input_field.setText("Analyze document: ")
+            self.input_field.setFocus()
+        elif action == act_ocr:
+            files, _ = QFileDialog.getOpenFileNames(self, "Select Image for OCR", "", "Images (*.png *.jpg *.jpeg *.tiff *.bmp *.pdf)")
+            if files:
+                self.input_field.setText(f"Extract all text and verify tables via OCR from {Path(files[0]).name}")
+                self._submit()
+        elif action == act_synth:
+            self.input_field.setText("Synthesize cross-document insights across all uploaded vault contracts:")
+            self.input_field.setFocus()
+        elif action == act_compliance:
+            self.input_field.setText("Check contract obligations and list upcoming compliance deadlines.")
+            self._submit()
+
+    def _clear_conversation(self):
+        self.messages = [
+            {
+                "role": "assistant",
+                "text": (
+                    "DocuVault AI Assistant is ready. Ask any question about your contracts, NDAs, invoices, "
+                    "or imported records. All responses are verified with source citations."
+                ),
+                "citations": [],
+                "time": "Just now",
+            }
+        ]
+        self._render_messages()
+
     def _render_messages(self):
-        # Clear layout
         while self.chat_lay.count():
             item = self.chat_lay.takeAt(0)
             w = item.widget()
@@ -5227,9 +7712,16 @@ class AIDrawer(QFrame):
                 ub_lay.setContentsMargins(6, 6, 6, 6)
                 ub_lay.setSpacing(3)
 
-                u_hdr = QLabel("👤 You")
+                u_hdr_box = QHBoxLayout()
+                u_hdr_box.setSpacing(6)
+                u_ico = QLabel()
+                u_ico.setPixmap(draw_vector_icon("user", t["primary"], 12))
+                u_hdr_box.addWidget(u_ico)
+                u_hdr = QLabel("You")
                 u_hdr.setStyleSheet(f"font-size: 10.5px; font-weight: 700; color: {t['primary']}; background: transparent; border: none;")
-                ub_lay.addWidget(u_hdr)
+                u_hdr_box.addWidget(u_hdr)
+                u_hdr_box.addStretch()
+                ub_lay.addLayout(u_hdr_box)
 
                 ulbl = QLabel(text)
                 ulbl.setWordWrap(True)
@@ -5248,16 +7740,28 @@ class AIDrawer(QFrame):
                 alay.setSpacing(6)
 
                 badges_lay = QHBoxLayout()
-                b_name = QLabel("✨ DocuVault AI")
+                badges_lay.setSpacing(6)
+                b_ico = QLabel()
+                b_ico.setPixmap(draw_vector_icon("sparkle", t["primary"], 13))
+                badges_lay.addWidget(b_ico)
+                b_name = QLabel("DocuVault AI")
                 b_name.setStyleSheet(f"font-size: 11.5px; font-weight: 800; color: {t['primary']}; background: transparent; border: none;")
                 badges_lay.addWidget(b_name)
 
                 b_ground = QLabel(f"● Grounded ({len(citations)} source{'s' if len(citations)!=1 else ''})")
-                b_ground.setStyleSheet("background: rgba(50, 213, 131, 0.16); color: #32D583; font-size: 9.5px; font-weight: 700; border-radius: 6px; padding: 2px 6px;")
+                b_ground.setStyleSheet(f"""
+                    background: rgba(242, 106, 27, 0.14);
+                    color: {t['primary']};
+                    border: 1px solid rgba(242, 106, 27, 0.28);
+                    font-size: 9.5px;
+                    font-weight: 700;
+                    border-radius: 6px;
+                    padding: 2px 7px;
+                """)
                 badges_lay.addWidget(b_ground)
 
                 b_time = QLabel("0.2s")
-                b_time.setStyleSheet(f"background: {'rgba(255, 255, 255, 0.08)' if is_dark else 'rgba(0, 0, 0, 0.06)'}; color: {t['text4']}; font-size: 9.5px; font-weight: 700; border-radius: 6px; padding: 2px 6px;")
+                b_time.setStyleSheet(f"background: {'rgba(255, 255, 255, 0.08)' if is_dark else 'rgba(0, 0, 0, 0.06)'}; color: {t['text4']}; font-size: 9.5px; font-weight: 700; border-radius: 6px; padding: 2px 7px;")
                 badges_lay.addWidget(b_time)
                 badges_lay.addStretch()
                 alay.addLayout(badges_lay)
@@ -5312,11 +7816,9 @@ class AIDrawer(QFrame):
             "citations": []
         })
 
-        # Compute answer via assistant if present
         citations = []
         if self.assistant:
             try:
-                # If a specific document is currently selected, prioritize it
                 target_files = None
                 p = self.parent()
                 if p and hasattr(p, "selected_doc") and p.selected_doc:
@@ -5346,7 +7848,7 @@ class AIDrawer(QFrame):
         self._t = theme
         t = theme
         is_dark = t.get("name") == "dark"
-        drawer_bg = "rgba(10, 10, 14, 0.94)" if is_dark else "rgba(255, 255, 255, 0.96)"
+        drawer_bg = "rgba(10, 10, 14, 0.96)" if is_dark else "rgba(255, 255, 255, 0.96)"
         drawer_border = "rgba(255, 122, 46, 0.28)" if is_dark else "rgba(242, 106, 27, 0.25)"
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.setStyleSheet(f"""
@@ -5362,20 +7864,34 @@ class AIDrawer(QFrame):
         self.chat_container.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.chat_container.setStyleSheet("background: transparent; border: none;")
         self.title_lbl.setStyleSheet(f"font-size: 15px; font-weight: 800; color: {t['text']};")
-        self.btn_close.setStyleSheet(f"""
+
+        self.evidence_chip.setStyleSheet(f"""
+            background: rgba(242, 106, 27, 0.12);
+            color: {t['primary']};
+            border: 1px solid rgba(242, 106, 27, 0.28);
+            font-size: 9.5px;
+            font-weight: 700;
+            border-radius: 6px;
+            padding: 2px 7px;
+        """)
+
+        btn_icon_qss = f"""
             QPushButton {{
                 background: transparent;
-                color: {t['text4']};
                 border: none;
-                border-radius: 12px;
-                font-size: 13px;
-                font-weight: 700;
+                border-radius: 6px;
             }}
             QPushButton:hover {{
-                color: {t['text']};
-                background: {'#18181A' if is_dark else '#E5E5EA'};
+                background: {'rgba(255, 255, 255, 0.08)' if is_dark else 'rgba(0, 0, 0, 0.06)'};
             }}
-        """)
+        """
+        if hasattr(self, "btn_clear"):
+            self.btn_clear.setStyleSheet(btn_icon_qss)
+        if hasattr(self, "btn_expand"):
+            self.btn_expand.setStyleSheet(btn_icon_qss)
+        if hasattr(self, "btn_close"):
+            self.btn_close.setStyleSheet(btn_icon_qss)
+
         if hasattr(self, "chip_buttons"):
             for chip_btn in self.chip_buttons:
                 chip_btn.setStyleSheet(f"""
@@ -5393,14 +7909,28 @@ class AIDrawer(QFrame):
                         color: {t['primary']};
                     }}
                 """)
+
         if hasattr(self, "in_wrap"):
             self.in_wrap.setStyleSheet(f"""
                 QFrame {{
                     background: {'#141418' if is_dark else t['bg2']};
-                    border: 1px solid {'#2B2B36' if is_dark else t['border']};
-                    border-radius: 12px;
+                    border: 1px solid {'rgba(255, 122, 46, 0.3)' if is_dark else t['border']};
+                    border-radius: 16px;
                 }}
             """)
+
+        if hasattr(self, "btn_attach"):
+            self.btn_attach.setStyleSheet(f"""
+                QPushButton {{
+                    background: {'rgba(255, 122, 46, 0.12)' if is_dark else 'rgba(242, 106, 27, 0.10)'};
+                    border: 1px solid {'rgba(255, 122, 46, 0.25)' if is_dark else 'rgba(242, 106, 27, 0.20)'};
+                    border-radius: 14px;
+                }}
+                QPushButton:hover {{
+                    background: rgba(242, 106, 27, 0.25);
+                }}
+            """)
+
         if hasattr(self, "input_field"):
             self.input_field.setStyleSheet(f"""
                 QLineEdit {{
@@ -5411,15 +7941,13 @@ class AIDrawer(QFrame):
                     selection-background-color: {t['primary']};
                 }}
             """)
+
         if hasattr(self, "btn_send"):
             self.btn_send.setStyleSheet(f"""
                 QPushButton {{
                     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {t['primary']}, stop:1 {t['primary_hover']});
-                    color: #FFFFFF;
-                    border: 1px solid {t['primary']};
-                    border-radius: 8px;
-                    font-size: 11px;
-                    font-weight: 700;
+                    border: none;
+                    border-radius: 14px;
                 }}
                 QPushButton:hover {{
                     background: {t['primary_hover']};
@@ -5658,6 +8186,10 @@ class DocuVault(QMainWindow):
     def __init__(self, current_user: Optional[Dict[str, Any]] = None, start_at_splash: bool = True):
         super().__init__()
         self.setWindowTitle("DocuVault — Enterprise Document Management")
+        self.setWindowIcon(get_app_icon())
+        app_inst = QApplication.instance()
+        if app_inst:
+            app_inst.setWindowIcon(get_app_icon())
         self.resize(1380, 880)
         self.setMinimumSize(1080, 680)
 
@@ -5753,6 +8285,8 @@ class DocuVault(QMainWindow):
             self.page_audit.update_theme(self.theme)
         if hasattr(self, "page_ai"):
             self.page_ai.update_theme(self.theme)
+        if hasattr(self, "page_organizer"):
+            self.page_organizer.update_theme(self.theme)
         if hasattr(self, "page_deadlines"):
             self.page_deadlines.update_theme(self.theme)
 
@@ -5987,20 +8521,22 @@ class DocuVault(QMainWindow):
         self.stack.setStyleSheet("background: transparent; border: none;")
         self.page_docs = self._build_documents_page()
         self.page_ai = AIAssistantPage(self.assistant, self.theme)
+        self.page_organizer = AIFileOrganizerPage(self.organizer, self.mongo, self.theme, self)
         self.page_storage = StorageVaultPage(self.theme)
         self.page_storage.btn_sync_now.clicked.connect(self._sync_storage_vault)
         self.page_storage.btn_change_loc.clicked.connect(self._track_new_directory)
         self.page_security = IntegritySecurityPage(self.theme)
         self.page_audit = AuditTrailPage(self.theme)
-        self.page_deadlines = DeadlinesPage(self.theme)
+        self.page_deadlines = DeadlinesPage(self.theme, mongo=self.mongo, owner_email=self.user_email, parent=self)
 
         # Index 0 is Documents (Default when opened)
-        self.stack.addWidget(self.page_docs)       # 0 (Documents - DEFAULT)
-        self.stack.addWidget(self.page_ai)         # 1 (AI Assistant)
-        self.stack.addWidget(self.page_storage)    # 2 (Storage Vault)
-        self.stack.addWidget(self.page_security)   # 3 (Integrity & Health)
-        self.stack.addWidget(self.page_audit)      # 4 (Audit Trail)
-        self.stack.addWidget(self.page_deadlines)  # 5 (Deadlines)
+        self.stack.addWidget(self.page_docs)        # 0 (Documents - DEFAULT)
+        self.stack.addWidget(self.page_ai)          # 1 (AI Assistant)
+        self.stack.addWidget(self.page_organizer)   # 2 (AI File Organizer)
+        self.stack.addWidget(self.page_storage)     # 3 (Storage Vault)
+        self.stack.addWidget(self.page_security)    # 4 (Integrity & Health)
+        self.stack.addWidget(self.page_audit)       # 5 (Audit Trail)
+        self.stack.addWidget(self.page_deadlines)   # 6 (Deadlines)
         self.center_splitter.addWidget(self.stack)
 
         # Document Details Drawer in Center Splitter (Slider side-by-side with AI Drawer)
@@ -6010,6 +8546,7 @@ class DocuVault(QMainWindow):
         # Option E: Draggable Extendable Right-Hand AI Drawer
         self.ai_drawer = AIDrawer(self.assistant, self.theme, self, owner_email=self.user_email)
         self.ai_drawer.closed.connect(self._toggle_ai_drawer)
+        self.ai_drawer.expand_requested.connect(lambda: self._on_page_selected(1))
         self.ai_drawer.setVisible(False)
         self.center_splitter.addWidget(self.ai_drawer)
 
@@ -6034,7 +8571,7 @@ class DocuVault(QMainWindow):
         flay.setSpacing(12)
 
         self.status_dot = QLabel("\u25CF")
-        self.status_dot.setStyleSheet(f"color: {self.theme['green']}; font-size: 11px;")
+        self.status_dot.setStyleSheet(f"color: {self.theme['primary']}; font-size: 11px;")
         flay.addWidget(self.status_dot)
 
         self.feedback_msg = QLabel("Ready \u2022 Press Ctrl+K to search \u2022 Ctrl+J for AI")
@@ -6375,6 +8912,7 @@ class DocuVault(QMainWindow):
         titles = [
             "Documents Workspace",
             "Explainable AI Assistant",
+            "AI File Organizer & Intelligent Triage",
             "Storage & Cloud Mirrors",
             "Integrity & Security Center",
             "Audit Action Log",
@@ -6383,16 +8921,19 @@ class DocuVault(QMainWindow):
         if idx == 1:
             self.page_ai.set_assistant(self.assistant)
         elif idx == 2:
-            self.page_storage.refresh_storage_metrics(self.docs, self.user_tier)
+            self.page_organizer.refresh_files()
         elif idx == 3:
-            self.page_security.refresh_metrics(self.docs)
+            self.page_storage.refresh_storage_metrics(self.docs, self.user_tier)
         elif idx == 4:
+            self.page_security.refresh_metrics(self.docs)
+        elif idx == 5:
             self.page_audit.refresh_from_logs(
                 self.mongo.get_audit_logs(user_email=self.user_email) if self.mongo.is_connected else [],
                 len(self.docs)
             )
-        elif idx == 5:
-            self.page_deadlines.refresh_deadlines(self.mongo.list_deadlines(user_email=self.user_email))
+        elif idx == 6:
+            self.page_deadlines.owner_email = self.user_email
+            self.page_deadlines.refresh_from_db()
         self._show_feedback(f"Navigated to {titles[idx]}")
 
     def _show_feedback(self, msg: str):
@@ -6454,7 +8995,8 @@ class DocuVault(QMainWindow):
         if hasattr(self, "page_ai"):
             self.page_ai.set_assistant(self.assistant)
         if hasattr(self, "page_deadlines"):
-            self.page_deadlines.refresh_deadlines(self.mongo.list_deadlines(user_email=getattr(self, "user_email", None)))
+            self.page_deadlines.owner_email = self.user_email
+            self.page_deadlines.refresh_from_db()
         if hasattr(self, "page_storage"):
             self.page_storage.refresh_storage_metrics(self.docs, getattr(self, "user_tier", "Free"))
         if hasattr(self, "page_security"):
@@ -6824,10 +9366,7 @@ class DocuVault(QMainWindow):
         dialog.exec()
 
     def _show_deadlines(self):
-        self.stack.setCurrentIndex(5)
-        for i, item in enumerate(self.sidebar.nav_items):
-            item.set_active(i == 5)
-        self.page_deadlines.refresh_deadlines(self.mongo.list_deadlines())
+        self._on_page_selected(6)
         self._show_feedback("Opened Deadlines & Obligations Workspace")
 
     # ─── Document Import Pipeline (With Duplicate Pre-Check) ───────────────

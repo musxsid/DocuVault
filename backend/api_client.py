@@ -478,24 +478,42 @@ class LLMClient:
 
     def _call_gemini(self, query: str, context: str) -> Optional[str]:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={self.gemini_api_key}"
-        prompt = (
-            "You are DocuVault AI, an enterprise document intelligence and neural search engine.\n"
-            "Answer the user's question accurately based strictly on the provided vault document and image excerpts.\n\n"
-            "CRITICAL RULES:\n"
-            "1. ONLY answer what is asked. If the user asks about a specific entity, company, or document (e.g. CodeArrest), do NOT include, mention, or cite any other companies or documents.\n"
-            "2. Structure your response EXACTLY like a search engine featured snippet:\n"
-            "### 🎯 Direct Answer\n"
-            "[Direct, concise, factual answer addressing only what was asked]\n\n"
-            "---\n"
-            "#### 📌 Source & Document Position\n"
-            "• **Document**: `[Filename]`\n"
-            "• **Position**: Page [X] · [Section/Paragraph Y]\n"
-            "• **Verified Excerpt**:\n"
-            "> ❝ [Exact verbatim text from the document at that position] ❞\n\n"
-            f"Context Excerpts:\n{context}\n\n"
-            f"Question:\n{query}\n\n"
-            "Answer:"
-        )
+        if context and context.strip():
+            prompt = (
+                "You are DocuVault AI, an enterprise document intelligence and neural search engine.\n"
+                "Answer the user's question accurately, completely, and authoritatively based strictly on the provided vault document and image excerpts.\n\n"
+                "CRITICAL RULES:\n"
+                "1. Provide a comprehensive, exact, and complete answer addressing what was asked without leaving out crucial details, steps, or clauses.\n"
+                "2. ONLY answer what is asked. If the user asks about a specific entity, company, or document (e.g. CodeArrest), do NOT include, mention, or cite any other companies or documents.\n"
+                "3. Structure your response using clean professional markdown suitable for an executive workspace:\n"
+                "### Direct Findings\n"
+                "[Direct, complete, factual answer addressing only what was asked]\n\n"
+                "### Document Evidence & Position\n"
+                "• **Document**: `[Filename]`\n"
+                "• **Position**: Page [X] · [Section/Paragraph Y]\n"
+                "• **Verified Excerpt**:\n"
+                "> [Exact verbatim text from the document at that position]\n\n"
+                "4. DO NOT use emojis or gimmicky icons anywhere in your response. Keep all typography clean, professional, and workspace-appropriate.\n\n"
+                f"Context Excerpts:\n{context}\n\n"
+                f"Question:\n{query}\n\n"
+                "Answer:"
+            )
+        else:
+            prompt = (
+                "You are DocuVault AI, an executive workspace assistant specialized in document intelligence, academic study, research analysis, technical problem solving, drafting, and workspace tasks.\n\n"
+                "CRITICAL RULES:\n"
+                "1. Provide an in-depth, completely thorough, well-structured, and authoritative response to the user's inquiry.\n"
+                "2. Structure your response using clean professional markdown like ChatGPT:\n"
+                "   - Use ### Section Headings for logical organization.\n"
+                "   - Use bullet points and numbered step-by-step lists for clarity.\n"
+                "   - Use markdown comparison tables (| Column 1 | Column 2 |) when comparing concepts.\n"
+                "   - Use fenced code blocks with language identifiers (e.g. ```python) for code, formulas, or syntax.\n"
+                "   - Use blockquotes (> quote) for important principles or key takeaways.\n"
+                "3. DO NOT use emojis or gimmicky icons anywhere in your response (no emojis in headings, bullets, or body text).\n"
+                "4. Address the request completely without truncation, hand-waving, or placeholders.\n\n"
+                f"Task / Question:\n{query}\n\n"
+                "Answer:"
+            )
         body = {"contents": [{"parts": [{"text": prompt}]}]}
         r = requests.post(url, json=body, timeout=8.0)
         if r.status_code == 200:
@@ -516,31 +534,43 @@ class LLMClient:
         seen = set()
         models = [m for m in candidate_models if m and not (m in seen or seen.add(m))]
 
+        if context and context.strip():
+            sys_msg = (
+                "You are DocuVault AI, an enterprise document intelligence and neural search engine. "
+                "Answer questions accurately, completely, and authoritatively based strictly on the provided context excerpts.\n"
+                "CRITICAL RULES:\n"
+                "1. Answer ONLY what is asked. If asking for a specific entity or document (e.g. CodeArrest), do NOT mention any other companies.\n"
+                "2. Structure your response strictly as:\n"
+                "### Direct Findings\n"
+                "[Direct, complete factual answer]\n\n"
+                "### Document Evidence & Position\n"
+                "• **Document**: `[Filename]`\n"
+                "• **Position**: Page [X] · [Section/Paragraph Y]\n"
+                "• **Verified Excerpt**:\n"
+                "> [Exact verbatim quotation]\n\n"
+                "3. DO NOT use emojis or gimmicky icons anywhere in your response."
+            )
+            usr_msg = f"Context:\n{context}\n\nQuestion: {query}"
+        else:
+            sys_msg = (
+                "You are DocuVault AI, an executive workspace assistant specialized in document intelligence, academic study, research analysis, technical problem solving, drafting, and workspace tasks.\n"
+                "CRITICAL RULES:\n"
+                "1. Provide an in-depth, completely thorough, well-structured, and authoritative response.\n"
+                "2. Structure your response using clean professional markdown like ChatGPT: use ### Section Headings, bullet points, numbered lists, comparison tables, and fenced code blocks where appropriate.\n"
+                "3. DO NOT use emojis or gimmicky icons anywhere in your response.\n"
+                "4. Address the request completely without truncation."
+            )
+            usr_msg = f"Task / Question:\n{query}"
+
         for model in models:
             body = {
                 "model": model,
                 "messages": [
-                    {
-                        "role": "system",
-                        "content": (
-                            "You are DocuVault AI, an enterprise document search engine. "
-                            "Answer questions accurately based only on the provided context excerpts.\n"
-                            "CRITICAL: Answer ONLY what is asked. If asking for a specific entity or document (e.g. CodeArrest), do NOT mention any other companies.\n"
-                            "Structure your response strictly as:\n"
-                            "### 🎯 Direct Answer\n"
-                            "[Direct answer]\n\n"
-                            "---\n"
-                            "#### 📌 Source & Document Position\n"
-                            "• **Document**: `[Filename]`\n"
-                            "• **Position**: Page [X] · [Section/Paragraph Y]\n"
-                            "• **Verified Excerpt**:\n"
-                            "> ❝ [Verbatim quotation] ❞"
-                        ),
-                    },
-                    {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {query}"},
+                    {"role": "system", "content": sys_msg},
+                    {"role": "user", "content": usr_msg},
                 ],
                 "temperature": 0.2,
-                "max_tokens": 700,
+                "max_tokens": 1200,
             }
             try:
                 r = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=body, timeout=12.0)
@@ -562,30 +592,42 @@ class LLMClient:
             "Authorization": f"Bearer {self.openai_api_key}",
             "Content-Type": "application/json",
         }
+        if context and context.strip():
+            sys_msg = (
+                "You are DocuVault AI, an enterprise document intelligence and neural search engine. "
+                "Answer questions accurately, completely, and authoritatively based strictly on the provided context excerpts.\n"
+                "CRITICAL RULES:\n"
+                "1. Answer ONLY what is asked. If asking for a specific entity or document, do NOT mention any other companies.\n"
+                "2. Structure your response strictly as:\n"
+                "### Direct Findings\n"
+                "[Direct, complete factual answer]\n\n"
+                "### Document Evidence & Position\n"
+                "• **Document**: `[Filename]`\n"
+                "• **Position**: Page [X] · [Section/Paragraph Y]\n"
+                "• **Verified Excerpt**:\n"
+                "> [Exact verbatim quotation]\n\n"
+                "3. DO NOT use emojis or gimmicky icons anywhere in your response."
+            )
+            usr_msg = f"Context:\n{context}\n\nQuestion: {query}"
+        else:
+            sys_msg = (
+                "You are DocuVault AI, an executive workspace assistant specialized in document intelligence, academic study, research analysis, technical problem solving, drafting, and workspace tasks.\n"
+                "CRITICAL RULES:\n"
+                "1. Provide an in-depth, completely thorough, well-structured, and authoritative response.\n"
+                "2. Structure your response using clean professional markdown like ChatGPT: use ### Section Headings, bullet points, numbered lists, comparison tables, and fenced code blocks where appropriate.\n"
+                "3. DO NOT use emojis or gimmicky icons anywhere in your response.\n"
+                "4. Address the request completely without truncation."
+            )
+            usr_msg = f"Task / Question:\n{query}"
+
         body = {
             "model": "gpt-4o-mini",
             "messages": [
-                {
-                    "role": "system",
-                    "content": (
-                        "You are DocuVault AI, an enterprise document search engine. "
-                        "Answer questions accurately based strictly on the provided context excerpts.\n"
-                        "CRITICAL: Answer ONLY what is asked. If asking for a specific entity or document, do NOT mention any other companies.\n"
-                        "Structure your response strictly as:\n"
-                        "### 🎯 Direct Answer\n"
-                        "[Direct answer]\n\n"
-                        "---\n"
-                        "#### 📌 Source & Document Position\n"
-                        "• **Document**: `[Filename]`\n"
-                        "• **Position**: Page [X] · [Section/Paragraph Y]\n"
-                        "• **Verified Excerpt**:\n"
-                        "> ❝ [Verbatim quotation] ❞"
-                    ),
-                },
-                {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {query}"},
+                {"role": "system", "content": sys_msg},
+                {"role": "user", "content": usr_msg},
             ],
             "temperature": 0.2,
-            "max_tokens": 700,
+            "max_tokens": 1200,
         }
         r = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=body, timeout=8.0)
         if r.status_code == 200:
@@ -594,10 +636,20 @@ class LLMClient:
 
     def _call_ollama(self, query: str, context: str) -> Optional[str]:
         url = f"{self.ollama_url}/api/generate"
-        prompt = (
-            f"Context:\n{context}\n\nQuestion:\n{query}\n\n"
-            "Structure as:\n### 🎯 Direct Answer\n[Answer]\n\n---\n#### 📌 Source & Document Position\n• **Document**: [Filename]\n• **Position**: Page [X]\n• **Verified Excerpt**:\n> ❝ [Quote] ❞"
-        )
+        if context and context.strip():
+            prompt = (
+                f"Context:\n{context}\n\nQuestion:\n{query}\n\n"
+                "Structure strictly as:\n"
+                "### Direct Findings\n[Direct Answer]\n\n"
+                "### Document Evidence & Position\n"
+                "• **Document**: [Filename]\n• **Position**: Page [X]\n• **Verified Excerpt**:\n> [Exact Quote]\n\n"
+                "No emojis."
+            )
+        else:
+            prompt = (
+                f"Task / Question:\n{query}\n\n"
+                "Provide a complete, professional, well-structured answer using markdown headings, lists, tables, and code blocks where applicable. No emojis."
+            )
         body = {"model": "llama3", "prompt": prompt, "stream": False}
         r = requests.post(url, json=body, timeout=3.0)
         if r.status_code == 200:
@@ -605,9 +657,12 @@ class LLMClient:
         return None
 
     def _generate_extractive_summary(self, query: str, retrieved_chunks: List[Dict[str, Any]]) -> str:
-        """Offline smart extractive summarizer selecting the most relevant sentences with search engine citations."""
+        """Offline smart extractive summarizer selecting the most relevant sentences with clean provenance citations."""
         if not retrieved_chunks:
-            return "No matching document or image excerpts found in the vault matching your query."
+            return (
+                "### Direct Findings\n"
+                "No matching document excerpts were found in the current vault records for this query."
+            )
 
         top_chunk = retrieved_chunks[0]
         source = top_chunk.get("filename", "Unknown Document")
@@ -616,17 +671,17 @@ class LLMClient:
         text = top_chunk.get("snippet") or top_chunk.get("text", "")
 
         lines = [line.strip() for line in text.split("\n") if len(line.strip()) > 15 and not line.strip().startswith("---")]
-        summary_text = " ".join(lines[:2]) if lines else text[:220]
+        summary_text = " ".join(lines[:3]) if lines else text[:280]
 
         return (
-            "### 🎯 Direct Answer\n"
+            "### Direct Findings\n"
             f"Based on verified records from **{source}** (Page {page}), here is the direct finding for **'{query}'**:\n"
             f"• {summary_text}\n\n"
-            "---\n"
-            "#### 📌 Source & Document Position\n"
+            "### Document Evidence & Position\n"
             f"• **Document**: `{source}`\n"
             f"• **Position**: Page {page} · {sec}\n"
             "• **Verified Excerpt**:\n"
-            f"> ❝ {summary_text} ❞"
+            f"> {summary_text}"
         )
+
 

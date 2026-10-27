@@ -1,0 +1,817 @@
+[
+  {
+    "id": "conv_3_1793077414",
+    "title": "New Conversation",
+    "time_group": "Recent",
+    "messages": [
+      {
+        "role": "assistant",
+        "text": "Ready to inspect your vault and answer any question. What would you like to verify or search today?",
+        "citations": [],
+        "time": "10:33",
+        "speed": "0.1s",
+        "guardrail": {
+          "is_grounded": true,
+          "confidence_score": 1.0,
+          "warning": null
+        },
+        "provider": "DocuVault Hybrid Intelligence Engine"
+      }
+    ]
+  },
+  {
+    "id": "conv_2_1793051125",
+    "title": "Hey what all can you do for ...",
+    "time_group": "Recent",
+    "messages": [
+      {
+        "role": "assistant",
+        "text": "Ready to inspect your vault and answer any question. What would you like to verify or search today?",
+        "citations": [],
+        "time": "03:15",
+        "speed": "0.1s",
+        "guardrail": {
+          "is_grounded": true,
+          "confidence_score": 1.0,
+          "warning": null
+        },
+        "provider": "DocuVault Hybrid Intelligence Engine"
+      },
+      {
+        "role": "user",
+        "text": "hey what all can you do for me",
+        "time": "03:15"
+      },
+      {
+        "role": "assistant",
+        "text": "### Direct Findings\nThe provided excerpts contain only technical test outputs and error messages related to browser rendering, Python script execution, and temperature data visualizations. They do not include any description of services, functions, or capabilities that can be offered. Consequently, a list of what can be done cannot be derived from the given context.\n\n### Document Evidence & Position\n- **Document**: `test_browser.png`  \n  **Position**: Page 1 · General  \n  **Verified Excerpt**:  \n  > Browser Render Test Testing headless chrome rendering for web applications.\n\n- **Document**: `q20_terminal.png`  \n  **Position**: Page 1 · General  \n  **Verified Excerpt**:  \n  > q20_weather station_analysis_plots_py PS D: \\Advanced_Python_Lab> python . py C: . exe: can't open file 'd: r .py' : [Errno 2] No such file or directory\n\n- **Document**: `q20_output.png`  \n  **Position**: Page 1 · General  \n  **Verified Excerpt**:  \n  > Daily Temperature Trend (30 Days) Daily Temp Mean (27.60C) Temperature Distribution Histogram Median (27.60C) ...\n\n- **Document**: `q19_output.png`  \n  **Position**: Page 1 · General  \n  **Verified Excerpt**:  \n  > q19_numpy_empIoyee_structured_array_py PS D: \\Advanced_Python_Lab> python q19_numpy employee_structured_array. py C: . exe: can't open file 'd: py' : [Errno 2] No such file or directory\n\nThese excerpts focus on specific technical outputs and do not provide information about any broader capabilities or services.",
+        "citations": [
+          {
+            "filename": "test_browser.png",
+            "page_number": 1,
+            "section_title": "Paragraph 1 · Page 1",
+            "position": "Paragraph 1 · Page 1",
+            "snippet": "Browser Render Test Testing headless chrome rendering for web applications.",
+            "score": 2.7,
+            "category": "General"
+          },
+          {
+            "filename": "q20_terminal.png",
+            "page_number": 1,
+            "section_title": "Paragraph 2 · Page 1",
+            "position": "Paragraph 2 · Page 1",
+            "snippet": "q20_weather station_analysis_plots_py PS D: \\Advanced_Python_Lab> python . py C: . exe: can't open file 'd: r .py' : [Errno 2] No such file or directory",
+            "score": 2.7,
+            "category": "General"
+          },
+          {
+            "filename": "q20_output.png",
+            "page_number": 1,
+            "section_title": "Paragraph 3 · Page 1",
+            "position": "Paragraph 3 · Page 1",
+            "snippet": "Daily Temperature Trend (30 Days) Daily Temp Mean (27.60C) Temperature Distribution Histogram Median (27.60C) Group-Wise Average Temperatures C) 28 Q) E 27 31 30 29 28 26 25 4 7 6 5 2 1 E Q) 32 30 26 24 22 20 5 10 15 Day Number 20 25 30 25 26 27 28 29 30 31 27.700C Days 1-7 26.73...",
+            "score": 2.6,
+            "category": "General"
+          },
+          {
+            "filename": "q19_output.png",
+            "page_number": 1,
+            "section_title": "Paragraph 4 · Page 1",
+            "position": "Paragraph 4 · Page 1",
+            "snippet": "q19_numpy_empIoyee_structured_array_py PS D: \\Advanced_Python_Lab> python q19_numpy employee_structured_array. py C: . exe: can't open file 'd: py' : [Errno 2] No such file or directory",
+            "score": 2.6,
+            "category": "General"
+          },
+          {
+            "filename": "q20_output.png",
+            "page_number": 1,
+            "section_title": "Paragraph 5 · Page 1",
+            "position": "Paragraph 5 · Page 1",
+            "snippet": "Daily Temperature Trend (30 Days) Daily Temp Mean (27.60C) Temperature Distribution Histogram Median (27.60C) Group-Wise Average Temperatures C) 28 Q) E 27 31 30 29 28 26 25 4 7 6 5 2 1 E Q) 32 30 26 24 22 20 5 10 15 Day Number 20 25 30 25 26 27 28 29 30 31 27.700C Days 1-7 26.73...",
+            "score": 2.6,
+            "category": "General"
+          }
+        ],
+        "time": "03:15",
+        "speed": "2.39 s",
+        "guardrail": {
+          "is_grounded": true,
+          "confidence_score": 0.6,
+          "overlap_ratio": 0.4,
+          "warning": null
+        },
+        "provider": "Groq Cloud AI (openai/gpt-oss-120b)"
+      },
+      {
+        "role": "user",
+        "text": "hey tell me about my angel bot ai internship",
+        "time": "03:16"
+      },
+      {
+        "role": "assistant",
+        "text": "### Direct Findings\nYou completed a **Software Intern** role in the **IT Department** of **AngelBot AI Pvt Ltd** from **24 June 2026 to 14 August 2026**. The internship was **onsite** at the company’s New Delhi office (409‑4th Floor, NSIC Business Park, Okhla, New Delhi 110020) and you reported to **Mr. Sumit Shrotriya**. It was an **unpaid** position with no monetary benefits. During the internship you worked on the projects **“Git in Bits”** and **“Simply Music.”** Your performance was noted as **punctual, hardworking and inquisitive**.  \n\n### Document Evidence & Position\n- **Document**: `AngelBot AI Offer letter.pdf`  \n  **Position**: Page 1 · Section General  \n  **Verified Excerpt**:  \n  > “We are glad to inform you that you have been selected for the position of Software Intern at AngelBot AI Pvt Ltd… from 24th June 2026 to 14th August 2026. Your internship will be onsite at our office location… you will be reporting… to Mr. Sumit Shrotriya… Your internship is unpaid for above mentioned dates and is subject to review only on completion of the training and performance. You will not be eligible for any other monetary benefits from the company during this period.”\n\n- **Document**: `AngelBot AI Internship certificate.pdf`  \n  **Position**: Page 1 · Section General  \n  **Verified Excerpt**:  \n  > “This is to certify that Mr. Siddharth Shakyawal… has successfully completed his internship in IT Dept. at AngelBot AI Private Limited… from 24th June 2026 to 14th August 2026… All the necessary details were provided from our side for the establishment of the projects ie. Git in Bits & Simply Music… During the period of his internship, he was found punctual, hardworking and inquisitive.”",
+        "citations": [
+          {
+            "filename": "AngelBot AI Internship certificate.pdf",
+            "page_number": 1,
+            "section_title": "Paragraph 1 · Page 1",
+            "position": "Paragraph 1 · Page 1",
+            "snippet": "17th August 2026 To whom it may concern This is to certify that Mr. Siddharth Shakyawal student of BCA at Christ University, Lavasa has successfully completed his internship in IT Dept. at AngelBot AI Private Limited, 409- 4thFloor, NSIC Business Park, Okhla, New Delhi 110020 fro...",
+            "score": 3.3,
+            "category": "General"
+          },
+          {
+            "filename": "AngelBot AI Offer letter.pdf",
+            "page_number": 1,
+            "section_title": "Paragraph 2 · Page 1",
+            "position": "Paragraph 2 · Page 1",
+            "snippet": "Date: 19th June 2026 Siddharth Shakyawal New Delhi Subject: Offer Letter Dear Siddharth We are glad to inform you that you have been selected for the position of Software Intern at AngelBot AI Pvt Ltd, 409,4th Floor, NSIC Business Park, Okhla, New Delhi 110020 with IT Department ...",
+            "score": 3.2,
+            "category": "General"
+          }
+        ],
+        "time": "03:16",
+        "speed": "2.93 s",
+        "guardrail": {
+          "is_grounded": true,
+          "confidence_score": 1.0,
+          "overlap_ratio": 0.87,
+          "warning": null
+        },
+        "provider": "Groq Cloud AI (openai/gpt-oss-120b)"
+      },
+      {
+        "role": "user",
+        "text": "arrange all the documetns and give me the name here one by one under category",
+        "time": "03:17"
+      },
+      {
+        "role": "assistant",
+        "text": "### Direct Findings\nThe documents referenced in the provided excerpts are:\n\n- Advanced_Python_Lab_Manual_Detailed_Index.pdf  \n- Advanced_Python_Lab_Manual_Final.pdf  \n- Advanced_Python_Lab_Manual.pdf  \n\n### Document Evidence & Position\n• **Document**: `Advanced_Python_Lab_Manual_Detailed_Index.pdf`  \n  **Position**: Page 40 · Section General  \n  **Verified Excerpt**:  \n  > (Source: [Advanced_Python_Lab_Manual_Detailed_Index.pdf], Page: [40], Section: [General])  \n\n• **Document**: `Advanced_Python_Lab_Manual_Final.pdf`  \n  **Position**: Page 37 · Section General  \n  **Verified Excerpt**:  \n  > (Source: [Advanced_Python_Lab_Manual_Final.pdf], Page: [37], Section: [General])  \n\n• **Document**: `Advanced_Python_Lab_Manual.pdf`  \n  **Position**: Page 37 · Section General  \n  **Verified Excerpt**:  \n  > (Source: [Advanced_Python_Lab_Manual.pdf], Page: [37], Section: [General])",
+        "citations": [
+          {
+            "filename": "Advanced_Python_Lab_Manual_Detailed_Index.pdf",
+            "page_number": 40,
+            "section_title": "Paragraph 1 · Page 40",
+            "position": "Paragraph 1 · Page 40",
+            "snippet": "Question 16: Create Comma Separated Files (CSV) and Load the CSV files into the internal Data Structure Date of Practical: 25.09.2026 | Program Source: q16_csv_load_internal_datastructure.py Program Code: import csv import pandas as pd # Class for object-oriented internal represe...",
+            "score": 3.3,
+            "category": "Legal"
+          },
+          {
+            "filename": "Advanced_Python_Lab_Manual_Final.pdf",
+            "page_number": 37,
+            "section_title": "Paragraph 2 · Page 37",
+            "position": "Paragraph 2 · Page 37",
+            "snippet": "Question 16: Create Comma Separated Files (CSV) and Load the CSV files into the internal Data Structure Date of Practical: 25.09.2026 | Program Source: q16_csv_load_internal_datastructure.py Program Code: import csv import pandas as pd # Class for object-oriented internal represe...",
+            "score": 3.2,
+            "category": "Legal"
+          },
+          {
+            "filename": "Advanced_Python_Lab_Manual.pdf",
+            "page_number": 37,
+            "section_title": "Paragraph 3 · Page 37",
+            "position": "Paragraph 3 · Page 37",
+            "snippet": "Question 16: Create Comma Separated Files (CSV) and Load the CSV files into the internal Data Structure Date of Practical: 25.09.2026 | Program Source: q16_csv_load_internal_datastructure.py Program Code: import csv import pandas as pd # Class for object-oriented internal represe...",
+            "score": 3.2,
+            "category": "Legal"
+          },
+          {
+            "filename": "Advanced_Python_Lab_Manual_Final.pdf",
+            "page_number": 40,
+            "section_title": "Paragraph 4 · Page 40",
+            "position": "Paragraph 4 · Page 40",
+            "snippet": "Question 17: Write a program to demonstrate following: • Read students.csv (having 30 records) and create a new CSV file containing students whose attendance is below 85%. • Create a new column called Bonus_Marks and give 5 bonus marks those who are having more than 85% attendanc...",
+            "score": 3.1,
+            "category": "Legal"
+          },
+          {
+            "filename": "Advanced_Python_Lab_Manual.pdf",
+            "page_number": 40,
+            "section_title": "Paragraph 5 · Page 40",
+            "position": "Paragraph 5 · Page 40",
+            "snippet": "Question 17: Write a program to demonstrate following: • Read students.csv (having 30 records) and create a new CSV file containing students whose attendance is below 85%. • Create a new column called Bonus_Marks and give 5 bonus marks those who are having more than 85% attendanc...",
+            "score": 3.0,
+            "category": "Legal"
+          }
+        ],
+        "time": "03:17",
+        "speed": "3.30 s",
+        "guardrail": {
+          "is_grounded": false,
+          "confidence_score": 0.22,
+          "overlap_ratio": 0.15,
+          "warning": "Low Source Grounding (15% claim overlap). Portions of this answer could not be directly substantiated by retrieved document text."
+        },
+        "provider": "Groq Cloud AI (openai/gpt-oss-120b)"
+      },
+      {
+        "role": "user",
+        "text": "hey tell me about my low attendance file from the file in folder",
+        "time": "03:18"
+      },
+      {
+        "role": "assistant",
+        "text": "### Direct Findings\nThe low‑attendance file is named **`students_low_attendance.csv`**. It is created by filtering the original `students.csv` to include only those student records where the **Attendance_Pct** value is **below 85 %**. The script then writes these filtered records to the file.\n\n### Document Evidence & Position\n• **Document**: `Advanced_Python_Lab_Manual_Detailed_Index.pdf`  \n  **Position**: Page 44 · Section General  \n  **Verified Excerpt**:\n> ```python\n> # Task 1: Filter students whose attendance is below 85%\n> below_85_df = df[df[\"Attendance_Pct\"] < 85]\n> low_att_file = \"students_low_attendance.csv\"\n> below_85_df.to_csv(low_att_file, index=False)\n> print(f\"\\n[Task 1 Completed]: Filtered {len(below_85_df)} students with attendance < 85%. Saved to '{low_att_file}'.\")\n> ```\n\n• **Document**: `Advanced_Python_Lab_Manual_Final.pdf`  \n  **Position**: Page 41 · Section General  \n  **Verified Excerpt**:\n> ```python\n> # Task 1: Filter students whose attendance is below 85%\n> below_85_df = df[df[\"Attendance_Pct\"] < 85]\n> low_att_file = \"students_low_attendance.csv\"\n> below_85_df.to_csv(low_att_file, index=False)\n> ```\n\n• **Document**: `Advanced_Python_Lab_Manual_Final.pdf`  \n  **Position**: Page 40 · Section General (Question 17 description)  \n  **Verified Excerpt**:\n> “Read students.csv (having 30 records) and create a new CSV file containing students whose attendance is below 85%.”",
+        "citations": [
+          {
+            "filename": "low attendance fine 2026.pdf",
+            "page_number": 1,
+            "section_title": "Attendance Receipt",
+            "position": "Attendance Receipt",
+            "snippet": "  CHRIST(DEEMED TO BE UNIVERSITY)-LAVASA CAMPUS Attendance Receipt Name Siddharth Shakyawal Register Number 24112517 Contact Number 9256265129 Email Id siddharth.shakyawal@bcah.christuniversity.in Address type 3 29 f ,anupratap colony, rawatbhata,rajasthan Pancard Number POHPS7",
+            "score": 99.0,
+            "category": "Legal"
+          },
+          {
+            "filename": "Advanced_Python_Lab_Manual_Detailed_Index.pdf",
+            "page_number": 44,
+            "section_title": "Paragraph 2 · Page 44",
+            "position": "Paragraph 2 · Page 44",
+            "snippet": "df.to_csv(filename, index=False) print(f\"Generated '{filename}' containing {len(df)} student records.\\n\") return filename def process_student_csv_tasks(input_csv=\"students.csv\"): print(\"=== Processing Student CSV Operations ===\\n\") # Read the 30 records df = pd.read_csv(input_csv...",
+            "score": 2.8,
+            "category": "Legal"
+          },
+          {
+            "filename": "Advanced_Python_Lab_Manual_Final.pdf",
+            "page_number": 41,
+            "section_title": "Paragraph 3 · Page 41",
+            "position": "Paragraph 3 · Page 41",
+            "snippet": "df.to_csv(filename, index=False) print(f\"Generated '{filename}' containing {len(df)} student records.\\n\") return filename def process_student_csv_tasks(input_csv=\"students.csv\"): print(\"=== Processing Student CSV Operations ===\\n\") # Read the 30 records df = pd.read_csv(input_csv...",
+            "score": 2.8,
+            "category": "Legal"
+          },
+          {
+            "filename": "Advanced_Python_Lab_Manual_Final.pdf",
+            "page_number": 40,
+            "section_title": "Paragraph 4 · Page 40",
+            "position": "Paragraph 4 · Page 40",
+            "snippet": "Question 17: Write a program to demonstrate following: • Read students.csv (having 30 records) and create a new CSV file containing students whose attendance is below 85%. • Create a new column called Bonus_Marks and give 5 bonus marks those who are having more than 85% attendanc...",
+            "score": 2.8,
+            "category": "Legal"
+          },
+          {
+            "filename": "Advanced_Python_Lab_Manual.pdf",
+            "page_number": 41,
+            "section_title": "Paragraph 5 · Page 41",
+            "position": "Paragraph 5 · Page 41",
+            "snippet": "df.to_csv(filename, index=False) print(f\"Generated '{filename}' containing {len(df)} student records.\\n\") return filename def process_student_csv_tasks(input_csv=\"students.csv\"): print(\"=== Processing Student CSV Operations ===\\n\") # Read the 30 records df = pd.read_csv(input_csv...",
+            "score": 2.8,
+            "category": "Legal"
+          }
+        ],
+        "time": "03:18",
+        "speed": "2.34 s",
+        "guardrail": {
+          "is_grounded": true,
+          "confidence_score": 1.0,
+          "overlap_ratio": 0.67,
+          "warning": null
+        },
+        "provider": "Groq Cloud AI (openai/gpt-oss-120b)"
+      },
+      {
+        "role": "user",
+        "text": "tell me about the christ low attendance fine that i gave",
+        "time": "03:18"
+      },
+      {
+        "role": "assistant",
+        "text": "### Direct Findings\n- The low‑attendance fine issued by Christ (Deemed to be University) – Lavasa Campus was **₹1,000**.\n- It was levied under the **80‑84.99 % attendance category**.\n- The transaction was recorded on **29‑05‑2026** with **Transaction Id 60ee8d4bb5a6f8f65129**.\n- The receipt lists the payer as **Siddharth Shakyawal** (Register No. 24112517).\n\n### Document Evidence & Position\n- **Document**: `low attendance fine 2026.pdf`  \n- **Position**: Page 1 · Section General  \n- **Verified Excerpt**:\n> ```\n> CHRIST(DEEMED TO BE UNIVERSITY)-LAVASA CAMPUS\n> Attendance Receipt\n> Name\n> Siddharth Shakyawal\n> Register Number\n> 24112517\n> Category\n> 80-84.99\n> Amount\n> 1000\n> Total Amount\n> 1000.0\n> Transaction Id\n> 60ee8d4bb5a6f8f65129\n> Transaction Date\n> 29-05-2026\n> ```",
+        "citations": [
+          {
+            "filename": "low attendance fine 2026.pdf",
+            "page_number": 1,
+            "section_title": "Paragraph 1 · Page 1",
+            "position": "Paragraph 1 · Page 1",
+            "snippet": "  CHRIST(DEEMED TO BE UNIVERSITY)-LAVASA CAMPUS Attendance Receipt Name Siddharth Shakyawal Register Number 24112517 Contact Number 9256265129 Email Id siddharth.shakyawal@bcah.christuniversity.in Address type 3 29 f ,anupratap colony, rawatbhata,rajasthan Pancard Number POHPS7...",
+            "score": 3.3,
+            "category": "Legal"
+          },
+          {
+            "filename": "Advanced_Python_Lab_Manual_Detailed_Index.pdf",
+            "page_number": 44,
+            "section_title": "Paragraph 2 · Page 44",
+            "position": "Paragraph 2 · Page 44",
+            "snippet": "df.to_csv(filename, index=False) print(f\"Generated '{filename}' containing {len(df)} student records.\\n\") return filename def process_student_csv_tasks(input_csv=\"students.csv\"): print(\"=== Processing Student CSV Operations ===\\n\") # Read the 30 records df = pd.read_csv(input_csv...",
+            "score": 3.2,
+            "category": "Legal"
+          },
+          {
+            "filename": "Advanced_Python_Lab_Manual.pdf",
+            "page_number": 41,
+            "section_title": "Paragraph 3 · Page 41",
+            "position": "Paragraph 3 · Page 41",
+            "snippet": "df.to_csv(filename, index=False) print(f\"Generated '{filename}' containing {len(df)} student records.\\n\") return filename def process_student_csv_tasks(input_csv=\"students.csv\"): print(\"=== Processing Student CSV Operations ===\\n\") # Read the 30 records df = pd.read_csv(input_csv...",
+            "score": 3.2,
+            "category": "Legal"
+          },
+          {
+            "filename": "Advanced_Python_Lab_Manual_Final.pdf",
+            "page_number": 41,
+            "section_title": "Paragraph 4 · Page 41",
+            "position": "Paragraph 4 · Page 41",
+            "snippet": "df.to_csv(filename, index=False) print(f\"Generated '{filename}' containing {len(df)} student records.\\n\") return filename def process_student_csv_tasks(input_csv=\"students.csv\"): print(\"=== Processing Student CSV Operations ===\\n\") # Read the 30 records df = pd.read_csv(input_csv...",
+            "score": 3.1,
+            "category": "Legal"
+          },
+          {
+            "filename": "Advanced_Python_Lab_Manual_Final.pdf",
+            "page_number": 40,
+            "section_title": "Paragraph 5 · Page 40",
+            "position": "Paragraph 5 · Page 40",
+            "snippet": "Question 17: Write a program to demonstrate following: • Read students.csv (having 30 records) and create a new CSV file containing students whose attendance is below 85%. • Create a new column called Bonus_Marks and give 5 bonus marks those who are having more than 85% attendanc...",
+            "score": 3.1,
+            "category": "Legal"
+          }
+        ],
+        "time": "03:18",
+        "speed": "1.92 s",
+        "guardrail": {
+          "is_grounded": true,
+          "confidence_score": 1.0,
+          "overlap_ratio": 0.69,
+          "warning": null
+        },
+        "provider": "Groq Cloud AI (openai/gpt-oss-120b)"
+      },
+      {
+        "role": "user",
+        "text": "hey tell me about my skills from my resume document",
+        "time": "03:19"
+      },
+      {
+        "role": "assistant",
+        "text": "### Direct Findings\nThe provided documents do not contain a resume that lists your skills. The internship certificate (Document [3]) includes only a description of the internship period and role, without enumerating any specific technical or professional skills.\n\n### Document Evidence & Position\n- **Document**: `CodeArrest_Internship_Completion_certificate.pdf`\n- **Position**: Page 1 · Section General\n- **Verified Excerpt**:\n> “This is to certify that Siddharth Shakyawal, has successfully completed an onsite internship at CodeArrest Softwares Pvt Ltd. from 24th June 2025 to 23rd Aug 2025 as Software Developer Intern. … During this period, he demonstrated exceptional skills, dedication, and professionalism in carrying out assigned tasks.”  \n\n*The excerpt mentions “exceptional skills” in a general sense but does not specify what those skills are.*",
+        "citations": [
+          {
+            "filename": "Advanced_Python_Lab_Manual_Final.pdf",
+            "page_number": 20,
+            "section_title": "Paragraph 1 · Page 20",
+            "position": "Paragraph 1 · Page 20",
+            "snippet": "st.write(f\"**Email:** {email} | **Contact:** {contact}\") st.write(f\"**Skills:** {', '.join(skills)}\") if __name__ == \"__main__\": main() Execution Output Screenshot: BCA306-5: Advanced Python Laboratory Manual Academic Year 2026 Department of Computer Applications Page 20 of 52",
+            "score": 3.1,
+            "category": "Legal"
+          },
+          {
+            "filename": "Advanced_Python_Lab_Manual_Detailed_Index.pdf",
+            "page_number": 22,
+            "section_title": "Paragraph 2 · Page 22",
+            "position": "Paragraph 2 · Page 22",
+            "snippet": "Question 8: Write program to create registration form for students using streamlit Date of Practical: 15.09.2026 | Program Source: q08_streamlit_registration.py Program Code: import streamlit as st import re from datetime import date def main(): st.set_page_config(page_title=\"Stu...",
+            "score": 3.0,
+            "category": "Legal"
+          },
+          {
+            "filename": "CodeArrest_Internship_Completion_certificate.pdf",
+            "page_number": 1,
+            "section_title": "Paragraph 3 · Page 1",
+            "position": "Paragraph 3 · Page 1",
+            "snippet": "INTERNSHIP CERTIFICATE Date: 23rd Aug 2025 This is to certify that Siddharth Shakyawal, has successfully completed an onsite internship at CodeArrest Softwares Pvt Ltd. from 24th June 2025 to 23rd Aug 2025 as Software Developer Intern. During this period, he demonstrated exceptio...",
+            "score": 3.0,
+            "category": "Legal"
+          },
+          {
+            "filename": "Advanced_Python_Lab_Manual_Final.pdf",
+            "page_number": 19,
+            "section_title": "Paragraph 4 · Page 19",
+            "position": "Paragraph 4 · Page 19",
+            "snippet": "Question 8: Write program to create registration form for students using streamlit Date of Practical: 15.09.2026 | Program Source: q08_streamlit_registration.py Program Code: import streamlit as st import re from datetime import date def main(): st.set_page_config(page_title=\"Stu...",
+            "score": 3.0,
+            "category": "Legal"
+          }
+        ],
+        "time": "03:19",
+        "speed": "2.09 s",
+        "guardrail": {
+          "is_grounded": true,
+          "confidence_score": 0.83,
+          "overlap_ratio": 0.55,
+          "warning": null
+        },
+        "provider": "Groq Cloud AI (openai/gpt-oss-120b)"
+      },
+      {
+        "role": "user",
+        "text": "he ytell me the resume details of mine from the document resume pdf",
+        "time": "03:20"
+      },
+      {
+        "role": "assistant",
+        "text": "### Direct Findings\nThe provided documents do not contain any resume or résumé details for Siddharth Shakyawal.\n\n### Document Evidence & Position\n• **Document**: `[AngelBot AI Internship certificate.pdf]`  \n  **Position**: Page 1 · General  \n  **Verified Excerpt**:  \n  > This is to certify that Mr. Siddharth Shakyawal student of BCA at Christ University, Lavasa has successfully completed his internship...\n\n• **Document**: `[AngelBot AI Offer letter.pdf]`  \n  **Position**: Page 2 · General  \n  **Verified Excerpt**:  \n  > Information Sheet … [list of documents to bring at joining]\n\n• **Document**: `[CodeArrest_offer_letter.pdf]`  \n  **Position**: Page 2 · General  \n  **Verified Excerpt**:  \n  > INTERNSHIP CERTIFICATE - Siddharth Shakyawal … (audit and signature details)\n\n• **Document**: `[CodeArrest_Internship_Completion_certificate.pdf]`  \n  **Position**: Page 2 · General  \n  **Verified Excerpt**:  \n  > INTERNSHIP CERTIFICATE - Siddharth Shakyawal … (audit and signature details)\n\n• **Document**: `[Advanced_Python_Lab_Manual_Final.pdf]`  \n  **Position**: Page 23 · General  \n  **Verified Excerpt**:  \n  > Question 10: Development of a Multi-Route Web Application Using Flask … (code snippet)\n\nNone of the above excerpts contain a résumé or any résumé‑specific information. Consequently, the requested résumé details cannot be extracted from the supplied context.",
+        "citations": [
+          {
+            "filename": "AngelBot AI Internship certificate.pdf",
+            "page_number": 1,
+            "section_title": "Paragraph 1 · Page 1",
+            "position": "Paragraph 1 · Page 1",
+            "snippet": "17th August 2026 To whom it may concern This is to certify that Mr. Siddharth Shakyawal student of BCA at Christ University, Lavasa has successfully completed his internship in IT Dept. at AngelBot AI Private Limited, 409- 4thFloor, NSIC Business Park, Okhla, New Delhi 110020 fro...",
+            "score": 3.2,
+            "category": "General"
+          },
+          {
+            "filename": "AngelBot AI Offer letter.pdf",
+            "page_number": 2,
+            "section_title": "Paragraph 2 · Page 2",
+            "position": "Paragraph 2 · Page 2",
+            "snippet": "Information Sheet [A] Joining day details: Reporting Time: 9:00 AM Sharp Reporting Place: Unit 013A, Ground floor, NSIC Business Park, Okhla industrial Estate, New Delhi 110020. Contact person: Charul Chaudhary Contact No- 6387167967 [B] Address and Identity Proof Documentation: ...",
+            "score": 3.1,
+            "category": "General"
+          },
+          {
+            "filename": "CodeArrest_offer_letter.pdf",
+            "page_number": 2,
+            "section_title": "Paragraph 3 · Page 2",
+            "position": "Paragraph 3 · Page 2",
+            "snippet": "INTERNSHIP CERTIFICATE - Siddharth Shakyawal Final Audit Report 2025-08-24 Created: 2025-08-24 By: Ankita Negi (hr@codearrest.com) Status: Signed Transaction ID: CBJCHBCAABAAlo2uC1Tu-a-iDrCXTgk6nMWoPXSAGgk- \"INTERNSHIP CERTIFICATE - Siddharth Shakyawal\" History Document created b...",
+            "score": 2.9,
+            "category": "Legal"
+          },
+          {
+            "filename": "CodeArrest_Internship_Completion_certificate.pdf",
+            "page_number": 2,
+            "section_title": "Paragraph 4 · Page 2",
+            "position": "Paragraph 4 · Page 2",
+            "snippet": "INTERNSHIP CERTIFICATE - Siddharth Shakyawal Final Audit Report 2025-08-24 Created: 2025-08-24 By: Ankita Negi (hr@codearrest.com) Status: Signed Transaction ID: CBJCHBCAABAAlo2uC1Tu-a-iDrCXTgk6nMWoPXSAGgk- \"INTERNSHIP CERTIFICATE - Siddharth Shakyawal\" History Document created b...",
+            "score": 2.9,
+            "category": "Legal"
+          },
+          {
+            "filename": "Advanced_Python_Lab_Manual_Final.pdf",
+            "page_number": 23,
+            "section_title": "Paragraph 5 · Page 23",
+            "position": "Paragraph 5 · Page 23",
+            "snippet": "Question 10: Development of a Multi-Route Web Application Using Flask Date of Practical: 17.09.2026 | Program Source: q10_flask_multi_route.py Program Code: from flask import Flask, jsonify, request, render_template_string app = Flask(__name__) # Sample in-memory database of stud...",
+            "score": 2.7,
+            "category": "Legal"
+          }
+        ],
+        "time": "03:20",
+        "speed": "2.14 s",
+        "guardrail": {
+          "is_grounded": true,
+          "confidence_score": 0.86,
+          "overlap_ratio": 0.57,
+          "warning": null
+        },
+        "provider": "Groq Cloud AI (openai/gpt-oss-120b)"
+      },
+      {
+        "role": "user",
+        "text": "what is neoverse",
+        "time": "03:21"
+      },
+      {
+        "role": "assistant",
+        "text": "### Direct Findings\nNeoverse is the name of a 24‑hour national‑level AI hackathon (NEOVERSE'26) organized by the Department of Computing – AI & ML at Coimbatore Institute of Technology.\n\n### Document Evidence & Position\n• **Document**: `Neoverse_hackathon_cit.png`  \n• **Position**: Page 1 · Section General  \n• **Verified Excerpt**:\n> “NEOVERSE'26 - A 24‑HOUR NATIONAL LEVEL A1 HACKATHON, ORGANIZED BY THE DEPARTMENT OF COMPUTING - A1 & ML, COIMBATORE INSTITUTE OF TECHNOLOGY …”",
+        "citations": [
+          {
+            "filename": "Neoverse_hackathon_cit.png",
+            "page_number": 1,
+            "section_title": "Paragraph 1 · Page 1",
+            "position": "Paragraph 1 · Page 1",
+            "snippet": "CERTIFICATE OF PARTICIPATION THIS IS TO CERITFY THAT Siddharth Shakyawal Christ (Deemed to be University), Lavasa FROM OF THE TEAM Gravitas HAS PARTICIPATED IN NEOVERSE'26 - A 24- HOUR NATIONAL LEVEL A1 HACKATHON, ORGANIZED BY THE DEPARTMENT OF COMPUTING - A1 & ML, COIMBATORE INS...",
+            "score": 3.3,
+            "category": "General"
+          }
+        ],
+        "time": "03:21",
+        "speed": "1.44 s",
+        "guardrail": {
+          "is_grounded": true,
+          "confidence_score": 0.91,
+          "overlap_ratio": 0.61,
+          "warning": null
+        },
+        "provider": "Groq Cloud AI (openai/gpt-oss-120b)"
+      },
+      {
+        "role": "user",
+        "text": "what wasb the low attendaance fees christ doc?",
+        "time": "09:41"
+      },
+      {
+        "role": "assistant",
+        "text": "### Direct Findings\nThe supplied documents do not contain any information about low attendance fees for Christ.\n\n### Document Evidence & Position\n• **Document**: *None*  \n• **Position**: N/A  \n• **Verified Excerpt**:\n> (No excerpt related to attendance fees is present in the provided excerpts.)",
+        "citations": [
+          {
+            "filename": "IA&CV_PCA_Image_Denoising_Detailed_Tutorial.pptx.pdf",
+            "page_number": 36,
+            "section_title": "Paragraph 1 · Page 36",
+            "position": "Paragraph 1 · Page 36",
+            "snippet": "Excellence and Service CHRIST Deemed to be University Smoothing Filters (Low-Pass Filters): 1. Smoothing filters are used to reduce noise and blur in an image by averaging or smoothing the pixel values in the neighborhood of each pixel. 2. They are also known as low-pass filters ...",
+            "score": 3.1,
+            "category": "Legal"
+          },
+          {
+            "filename": "IA&CV_PCA_Image_Denoising_Detailed_Tutorial.pptx.pdf",
+            "page_number": 36,
+            "section_title": "Paragraph 2 · Page 36",
+            "position": "Paragraph 2 · Page 36",
+            "snippet": "Excellence and Service CHRIST Deemed to be University Smoothing Filters (Low-Pass Filters): 1. Smoothing filters are used to reduce noise and blur in an image by averaging or smoothing the pixel values in the neighborhood of each pixel. 2. They are also known as low-pass filters ...",
+            "score": 3.1,
+            "category": "Legal"
+          },
+          {
+            "filename": "IA&CV_PCA_Image_Denoising_Detailed_Tutorial.pptx.pdf",
+            "page_number": 70,
+            "section_title": "Paragraph 3 · Page 70",
+            "position": "Paragraph 3 · Page 70",
+            "snippet": "Excellence and Service CHRIST Deemed to be University Sharpening Filters (High-Pass Filters): Sharpening filters enhance the edges and fine details in an image. They are also known as high-pass filters because they amplify high-frequency components while suppressing low-frequency...",
+            "score": 2.4,
+            "category": "Legal"
+          }
+        ],
+        "time": "09:41",
+        "speed": "3.55 s",
+        "guardrail": {
+          "is_grounded": false,
+          "confidence_score": 0.05,
+          "overlap_ratio": 0.04,
+          "warning": "Low Source Grounding (4% claim overlap). Portions of this answer could not be directly substantiated by retrieved document text."
+        },
+        "provider": "Groq Cloud AI (openai/gpt-oss-120b)"
+      },
+      {
+        "role": "user",
+        "text": "tell me about my low attendance fine from the documents christ",
+        "time": "09:42"
+      },
+      {
+        "role": "assistant",
+        "text": "### Direct Findings\n- **Name:** Siddharth Shakyawal  \n- **Register Number:** 24112517  \n- **Fine Amount:** 1000 (total amount 1000.0)  \n- **Category:** 80‑84.99  \n- **Transaction ID:** 60ee8d4bb5a6f8f65129  \n- **Transaction Date:** 29‑05‑2026  \n\n### Document Evidence & Position\n- **Document:** `low attendance fine 2026.pdf`  \n- **Position:** Page 1 · Section General  \n- **Verified Excerpt:**  \n> Attendance Receipt  \n> Name  \n> Siddharth Shakyawal  \n> Register Number  \n> 24112517  \n> …  \n> Category  \n> 80-84.99  \n> Amount  \n> 1000  \n> Total Amount  \n> 1000.0  \n> Transaction Id  \n> 60ee8d4bb5a6f8f65129  \n> Transaction Date  \n> 29-05-2026",
+        "citations": [
+          {
+            "filename": "low attendance fine 2026.pdf",
+            "page_number": 1,
+            "section_title": "Paragraph 1 · Page 1",
+            "position": "Paragraph 1 · Page 1",
+            "snippet": "  CHRIST(DEEMED TO BE UNIVERSITY)-LAVASA CAMPUS Attendance Receipt Name Siddharth Shakyawal Register Number 24112517 Contact Number 9256265129 Email Id siddharth.shakyawal@bcah.christuniversity.in Address type 3 29 f ,anupratap colony, rawatbhata,rajasthan Pancard Number POHPS7...",
+            "score": 3.2,
+            "category": "Legal"
+          },
+          {
+            "filename": "IA&CV_PCA_Image_Denoising_Detailed_Tutorial.pptx.pdf",
+            "page_number": 70,
+            "section_title": "Paragraph 2 · Page 70",
+            "position": "Paragraph 2 · Page 70",
+            "snippet": "Excellence and Service CHRIST Deemed to be University Sharpening Filters (High-Pass Filters): Sharpening filters enhance the edges and fine details in an image. They are also known as high-pass filters because they amplify high-frequency components while suppressing low-frequency...",
+            "score": 2.8,
+            "category": "Legal"
+          },
+          {
+            "filename": "IA&CV_PCA_Image_Denoising_Detailed_Tutorial.pptx.pdf",
+            "page_number": 70,
+            "section_title": "Paragraph 3 · Page 70",
+            "position": "Paragraph 3 · Page 70",
+            "snippet": "Excellence and Service CHRIST Deemed to be University Sharpening Filters (High-Pass Filters): Sharpening filters enhance the edges and fine details in an image. They are also known as high-pass filters because they amplify high-frequency components while suppressing low-frequency...",
+            "score": 2.7,
+            "category": "Legal"
+          },
+          {
+            "filename": "DocuVault_Project_Report_Synopsis.pdf",
+            "page_number": 16,
+            "section_title": "Paragraph 4 · Page 16",
+            "position": "Paragraph 4 · Page 16",
+            "snippet": "09 / CONCLUSION, PRACTICAL LIMITATIONS AND FUTURE SCOPE 9.1 Project Conclusion DocuVault successfully achieves its core objective of bridging cryptographic data integrity with accessible, explainable document intelligence inside a unified Python architecture. By uniting magic-byt...",
+            "score": 2.6,
+            "category": "Legal"
+          },
+          {
+            "filename": "DocuVault_Project_Report_Synopsis.pdf",
+            "page_number": 16,
+            "section_title": "Paragraph 5 · Page 16",
+            "position": "Paragraph 5 · Page 16",
+            "snippet": "09 / CONCLUSION, PRACTICAL LIMITATIONS AND FUTURE SCOPE 9.1 Project Conclusion DocuVault successfully achieves its core objective of bridging cryptographic data integrity with accessible, explainable document intelligence inside a unified Python architecture. By uniting magic-byt...",
+            "score": 2.5,
+            "category": "Legal"
+          }
+        ],
+        "time": "09:42",
+        "speed": "4.02 s",
+        "guardrail": {
+          "is_grounded": true,
+          "confidence_score": 1.0,
+          "overlap_ratio": 0.78,
+          "warning": null
+        },
+        "provider": "Groq Cloud AI (openai/gpt-oss-120b)"
+      },
+      {
+        "role": "user",
+        "text": "tell me about my offer letter",
+        "time": "09:42"
+      },
+      {
+        "role": "assistant",
+        "text": "### Direct Findings\nYour offer letter sets a notice period of **30 days**, which must be provided in writing by either side to end the agreement. The confidentiality obligations in the NDA remain in effect after the notice period ends.\n\n### Document Evidence & Position\n• **Document**: `AI Assistant@1x.png`  \n• **Position**: Page 1 · General  \n• **Verified Excerpt**:\n> \"Either party may end this agreement with thirty days written notice.\"\n\n• **Document**: `AI Assistant@1x.png`  \n• **Position**: Page 1 · General  \n• **Verified Excerpt**:\n> \"This notice period does not apply to confidentiality duties.\"",
+        "citations": [
+          {
+            "filename": "Report(24112517).pdf",
+            "page_number": 3,
+            "section_title": "Paragraph 1 · Page 3",
+            "position": "Paragraph 1 · Page 3",
+            "snippet": "Attach Offer Letter",
+            "score": 2.9,
+            "category": "Legal"
+          },
+          {
+            "filename": "Copy of Final Internship report updated.pdf",
+            "page_number": 3,
+            "section_title": "Paragraph 2 · Page 3",
+            "position": "Paragraph 2 · Page 3",
+            "snippet": "Attach Offer Letter",
+            "score": 2.8,
+            "category": "Legal"
+          },
+          {
+            "filename": "AI Assistant@1x.png",
+            "page_number": 1,
+            "section_title": "Paragraph 3 · Page 1",
+            "position": "Paragraph 3 · Page 1",
+            "snippet": "DocuVault Enterprise Vault O Documents O Storage Vault O Integrity & Health O Audit Trail O AI Assistant O Deadlines O Collapse O Light mode AI Assistant Ask in plain words. Every answer shows where it came from. Quick questions Notice period Paymentterms Groundedin2sources 0.3 s...",
+            "score": 2.8,
+            "category": "Legal"
+          },
+          {
+            "filename": "Final Internship report .pdf",
+            "page_number": 3,
+            "section_title": "Paragraph 4 · Page 3",
+            "position": "Paragraph 4 · Page 3",
+            "snippet": "Attach Offer Letter",
+            "score": 2.8,
+            "category": "Legal"
+          },
+          {
+            "filename": "Final Internship report .pdf",
+            "page_number": 3,
+            "section_title": "Paragraph 5 · Page 3",
+            "position": "Paragraph 5 · Page 3",
+            "snippet": "Attach Offer Letter",
+            "score": 2.7,
+            "category": "Legal"
+          }
+        ],
+        "time": "09:43",
+        "speed": "3.73 s",
+        "guardrail": {
+          "is_grounded": true,
+          "confidence_score": 0.96,
+          "overlap_ratio": 0.64,
+          "warning": null
+        },
+        "provider": "Groq Cloud AI (openai/gpt-oss-120b)"
+      },
+      {
+        "role": "user",
+        "text": "hey there",
+        "time": "09:56"
+      },
+      {
+        "role": "assistant",
+        "text": "### DocuVault Workspace Intelligence\n\nI am your enterprise assistant for deep in-document search, academic study, analytical tasks, and workspace workflows.\n\n#### Core Capabilities\n• **Deep In-Document Search**: Locate exact clauses, figures, terms, and evidence with page-level provenance.\n• **Study & Academic Analysis**: Breakdown complex subjects, prepare exam reviews, solve problems, and analyze papers.\n• **Document Drafting & Tasks**: Generate templates, summarize contracts, draft policies, and structure reports.\n• **Multi-File Synthesis**: Reconcile cross-document evidence, compare agreements, and verify data consistency.\n\nAsk a question about your uploaded documents, request a study breakdown, or assign any document-related task.",
+        "citations": [],
+        "time": "09:56",
+        "speed": "0.74 s",
+        "guardrail": {
+          "is_grounded": true,
+          "confidence_score": 1.0,
+          "warning": null
+        },
+        "provider": "DocuVault Document Intelligence"
+      }
+    ]
+  },
+  {
+    "id": "conv_init",
+    "title": "Hi",
+    "time_group": "Recent",
+    "messages": [
+      {
+        "role": "assistant",
+        "text": "Welcome to **DocuVault AI**. I am your air-gapped, offline-first document intelligence assistant.\n\nEvery answer is grounded directly in your uploaded vault files using hybrid neural vector search and verified token overlap. Zero cloud exfiltration guaranteed.",
+        "citations": [],
+        "time": "Just now",
+        "speed": "0.1s",
+        "guardrail": {
+          "is_grounded": true,
+          "confidence_score": 1.0,
+          "warning": null
+        },
+        "provider": "DocuVault Hybrid Intelligence Engine"
+      },
+      {
+        "role": "user",
+        "text": "hi",
+        "time": "01:31"
+      },
+      {
+        "role": "assistant",
+        "text": "### DocuVault Workspace Intelligence\n\nI am your enterprise assistant for deep in-document search, academic study, analytical tasks, and workspace workflows.\n\n#### Core Capabilities:\n• **Deep In-Document Search**: Locate exact clauses, figures, terms, and evidence with page-level provenance.\n• **Study & Academic Analysis**: Breakdown complex subjects, prepare exam reviews, solve problems, and analyze papers.\n• **Document Drafting & Tasks**: Generate templates, summarize contracts, draft policies, and structure reports.\n• **Multi-File Synthesis**: Reconcile cross-document evidence, compare agreements, and verify data consistency.\n\nAsk a question about your uploaded documents, request a study breakdown, or assign any document-related task.",
+        "citations": [],
+        "time": "01:31",
+        "speed": "0.01 s",
+        "guardrail": {
+          "is_grounded": true,
+          "confidence_score": 1.0,
+          "warning": null
+        },
+        "provider": "DocuVault Document Intelligence"
+      },
+      {
+        "role": "user",
+        "text": "tell me about code arrest",
+        "time": "01:32"
+      },
+      {
+        "role": "assistant",
+        "text": "### Direct Findings\nBased on your verified vault records, you completed an onsite software engineering internship at **CodeArrest Softwares Pvt Ltd**:\n• **Role**: Software Developer Intern\n• **Duration**: 2 Months (24th June 2025 to 23rd August 2025)\n\n### Document Evidence & Position\n• **Document**: `CodeArrest_Internship_Completion_certificate.pdf`\n• **Position**: Page 1 · Paragraph 1\n• **Verified Excerpt**:\n> This is to certify that Siddharth Shakyawal has successfully completed an onsite internship as a Software Developer Intern at CodeArrest Softwares Pvt Ltd from 24th June 2025 to 23rd August 2025.",
+        "citations": [
+          {
+            "filename": "Advanced_Python_Lab_Manual_Final.pdf",
+            "page_number": 1,
+            "section_title": "Paragraph 1 · Page 1",
+            "position": "Paragraph 1 · Page 1",
+            "snippet": "CHRIST (Deemed to be University) Pune Lavasa Campus Department of Computer Sciences , School of Sciences Course Code: BCA 306-5 - ADVANCED PYTHON Python Lab Submission Submitted to: Dr. Rohit Gupta Department of Computer Science School of Sciences Submitted by: Siddharth Shakyawa...",
+            "score": 3.0,
+            "category": "Legal"
+          },
+          {
+            "filename": "Advanced_Python_Lab_Manual_Final.pdf",
+            "page_number": 17,
+            "section_title": "Paragraph 2 · Page 17",
+            "position": "Paragraph 2 · Page 17",
+            "snippet": "Question 7: Write a Program for Handling Network Errors while Fetching Data from a Public API Date of Practical: 10.09.2026 | Program Source: q07_api_network_error_handling.py Program Code: import requests def safe_api_fetch(url, timeout=3): print(f\"\\n[REQUEST] Target URL: {url}\"...",
+            "score": 2.8,
+            "category": "Legal"
+          },
+          {
+            "filename": "Advanced_Python_Lab_Manual_Final.pdf",
+            "page_number": 46,
+            "section_title": "Paragraph 3 · Page 46",
+            "position": "Paragraph 3 · Page 46",
+            "snippet": "Question 19: Write a program related to an organization maintains employee records containing employee ID, name, department code, monthly salary and performance score. Develop a program using NumPy structured arrays to analyze employee information. Requirements: • Create a struct...",
+            "score": 2.8,
+            "category": "Legal"
+          },
+          {
+            "filename": "Advanced_Python_Lab_Manual_Detailed_Index.pdf",
+            "page_number": 20,
+            "section_title": "Paragraph 4 · Page 20",
+            "position": "Paragraph 4 · Page 20",
+            "snippet": "Question 7: Write a Program for Handling Network Errors while Fetching Data from a Public API Date of Practical: 10.09.2026 | Program Source: q07_api_network_error_handling.py Program Code: import requests def safe_api_fetch(url, timeout=3): print(f\"\\n[REQUEST] Target URL: {url}\"...",
+            "score": 2.7,
+            "category": "Legal"
+          },
+          {
+            "filename": "Advanced_Python_Lab_Manual_Final.pdf",
+            "page_number": 23,
+            "section_title": "Paragraph 5 · Page 23",
+            "position": "Paragraph 5 · Page 23",
+            "snippet": "Question 10: Development of a Multi-Route Web Application Using Flask Date of Practical: 17.09.2026 | Program Source: q10_flask_multi_route.py Program Code: from flask import Flask, jsonify, request, render_template_string app = Flask(__name__) # Sample in-memory database of stud...",
+            "score": 2.6,
+            "category": "Legal"
+          }
+        ],
+        "time": "01:32",
+        "speed": "1.40 s",
+        "guardrail": {
+          "is_grounded": false,
+          "confidence_score": 0.41,
+          "overlap_ratio": 0.28,
+          "warning": "⚠️ Low Source Grounding (28% claim overlap). Portions of this answer could not be directly substantiated by retrieved document text."
+        },
+        "provider": "Groq Cloud AI (openai/gpt-oss-120b)"
+      },
+      {
+        "role": "user",
+        "text": "tell me my internship detials for code arrest internship",
+        "time": "03:02"
+      },
+      {
+        "role": "assistant",
+        "text": "### Direct Findings\n- **Intern Name:** Siddharth Shakyawal  \n- **Company:** CodeArrest Softwares Pvt Ltd.  \n- **Internship Type:** Onsite internship  \n- **Position Held:** Software Developer Intern  \n- **Internship Period:** 24 June 2025 to 23 August 2025  \n- **Certificate Issue Date:** 23 August 2025  \n- **Certifying HR Executive:** Ankita Negi, HR Executive  \n\n### Document Evidence & Position\n- **Document**: `CodeArrest_Internship_Completion_certificate.pdf`  \n- **Position**: Page 1 · Section General  \n- **Verified Excerpt**:\n> INTERNSHIP CERTIFICATE  \n>   \n> Date: 23rd Aug 2025  \n>   \n> This is to certify that Siddharth Shakyawal, has successfully completed an onsite internship at CodeArrest Softwares Pvt Ltd. from 24th June 2025 to 23rd Aug 2025 as Software Developer Intern.  \n>   \n> During this period, he demonstrated exceptional skills, dedication, and professionalism in carrying out assigned tasks.  \n> Siddharth Shakyawal has actively contributed to the projects, gained hands‑on experience, and developed a deeper understanding of the industry.  \n>   \n> We wish his all the best for future endeavors  \n>   \n> Ankita Negi  \n> HR Executive  \n> CodeArrest Softwares Pvt Ltd.  \n> Ankita Negi (Aug 24, 2025 13:01:46 GMT+5.5)",
+        "citations": [
+          {
+            "filename": "CodeArrest_Internship_Completion_certificate.pdf",
+            "page_number": 1,
+            "section_title": "Paragraph 1 · Page 1",
+            "position": "Paragraph 1 · Page 1",
+            "snippet": "INTERNSHIP CERTIFICATE Date: 23rd Aug 2025 This is to certify that Siddharth Shakyawal, has successfully completed an onsite internship at CodeArrest Softwares Pvt Ltd. from 24th June 2025 to 23rd Aug 2025 as Software Developer Intern. During this period, he demonstrated exceptio...",
+            "score": 2.6,
+            "category": "Legal"
+          }
+        ],
+        "time": "03:02",
+        "speed": "1.82 s",
+        "guardrail": {
+          "is_grounded": true,
+          "confidence_score": 1.0,
+          "overlap_ratio": 0.79,
+          "warning": null
+        },
+        "provider": "Groq Cloud AI (openai/gpt-oss-120b)"
+      }
+    ]
+  }
+]
