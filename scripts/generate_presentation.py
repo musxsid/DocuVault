@@ -10,6 +10,8 @@ import sys
 import subprocess
 from pathlib import Path
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent if Path(__file__).resolve().parent.name == "scripts" else Path(__file__).resolve().parent
+
 import pptx
 from pptx import Presentation
 from pptx.util import Inches, Pt
@@ -205,7 +207,7 @@ def build_slide_01_cover(prs):
     set_slide_background(slide)
 
     # Hero branding area (unboxed, clean, authoritative)
-    logo_path = r"d:\Programming\Projects\DocuVault\assets\logo.png"
+    logo_path = str(PROJECT_ROOT / "assets" / "logo.png")
     if os.path.exists(logo_path):
         slide.shapes.add_picture(logo_path, Inches(0.8), Inches(1.1), Inches(1.0), Inches(1.0))
 
@@ -1039,9 +1041,9 @@ def build_evidence_slide(prs, slide_num: int, tag: str, title: str, subtitle: st
 # SLIDES 08, 09, 10: EVIDENCE SLIDES WITH UNIFIED RIBBONS
 # =============================================================================
 def build_slide_08_evidence_workspace(prs):
-    media_dir = Path(r"C:\Users\siddh\.gemini\antigravity-ide\brain\b6d2c48b-dac1-447b-ba18-3ce7f04f23d0\.tempmediaStorage")
-    img1 = str(media_dir / "test_vault_dark.png")
-    img2 = str(media_dir / "test_page_1_storage_dark.png")
+    img_dir = PROJECT_ROOT / "assets" / "presentation"
+    img1 = str(img_dir / "doc_workspace.png")
+    img2 = str(img_dir / "storage_vault.png")
 
     metrics = [
         ("Multi-Format Ingestion", "Categorized across Legal, Medical, Financial, Academic, General."),
@@ -1062,7 +1064,7 @@ def build_slide_08_evidence_workspace(prs):
 
 
 def build_slide_09_evidence_security(prs):
-    img_dir = Path(r"d:\Programming\Projects\DocuVault\assets\presentation")
+    img_dir = PROJECT_ROOT / "assets" / "presentation"
     img1 = str(img_dir / "integrity_health.png")
     img2 = str(img_dir / "audit_trail.png")
 
@@ -1085,7 +1087,7 @@ def build_slide_09_evidence_security(prs):
 
 
 def build_slide_10_evidence_ai(prs):
-    img_dir = Path(r"d:\Programming\Projects\DocuVault\assets\presentation")
+    img_dir = PROJECT_ROOT / "assets" / "presentation"
     img1 = str(img_dir / "ai_assistant.png")
     img2 = str(img_dir / "deadlines_compliance.png")
 
@@ -1306,7 +1308,7 @@ def build_slide_13_qa(prs):
     set_slide_background(slide)
 
     # Hero top
-    logo_path = r"d:\Programming\Projects\DocuVault\assets\logo.png"
+    logo_path = str(PROJECT_ROOT / "assets" / "logo.png")
     if os.path.exists(logo_path):
         slide.shapes.add_picture(logo_path, Inches(0.8), Inches(0.8), Inches(0.85), Inches(0.85))
 
@@ -1479,8 +1481,10 @@ def main():
     print("Building Slide 13: Summary & Q&A...")
     build_slide_13_qa(prs)
 
-    pptx_path = r"d:\Programming\Projects\DocuVault\DocuVault_Presentation.pptx"
-    pdf_path = r"d:\Programming\Projects\DocuVault\DocuVault_Presentation.pdf"
+    docs_dir = PROJECT_ROOT / "docs"
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    pptx_path = str(docs_dir / "DocuVault_Presentation.pptx")
+    pdf_path = str(docs_dir / "DocuVault_Presentation.pdf")
 
     prs.save(pptx_path)
     print(f"Presentation saved to: {pptx_path}")

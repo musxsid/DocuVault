@@ -1071,7 +1071,10 @@ def build_pdf_report(output_filename: str):
 
 
 if __name__ == "__main__":
-    out_file = r"d:\Programming\Projects\DocuVault\DocuVault_Comprehensive_Architecture_and_Use_Cases_Report.pdf"
+    project_root = Path(__file__).resolve().parent.parent if Path(__file__).resolve().parent.name == "scripts" else Path(__file__).resolve().parent
+    docs_dir = project_root / "docs"
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    out_file = str(docs_dir / "DocuVault_Comprehensive_Architecture_and_Use_Cases_Report.pdf")
     print(f"Generating comprehensive PDF report at: {out_file}")
     build_pdf_report(out_file)
     print("PDF generation completed successfully!")

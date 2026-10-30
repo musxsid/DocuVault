@@ -819,8 +819,8 @@ def build_academic_pdf(output_path: str):
     # =========================================================================
     # 8. SECTION 07: APPLICATION EVIDENCE & VERIFICATION (PAGES 9–14)
     # =========================================================================
-    img_dir = Path(r"d:\Programming\Projects\DocuVault\assets\presentation")
-    media_dir = Path(r"C:\Users\siddh\.gemini\antigravity-ide\brain\b6d2c48b-dac1-447b-ba18-3ce7f04f23d0\.tempmediaStorage")
+    project_root = Path(__file__).resolve().parent.parent if Path(__file__).resolve().parent.name == "scripts" else Path(__file__).resolve().parent
+    img_dir = project_root / "assets" / "presentation"
 
     # --- Figure 1: Document Workspace (Page 9) ---
     story.append(Paragraph("07 / APPLICATION EVIDENCE AND VERIFICATION", h1))
@@ -831,7 +831,7 @@ def build_academic_pdf(output_path: str):
         "document workspace, cryptographic verification centers, explainable AI assistant, and audit trails.",
         body_tight
     ))
-    fig1_path = media_dir / "test_vault_dark.png"
+    fig1_path = img_dir / "doc_workspace.png"
     if fig1_path.exists():
         im1 = Image(str(fig1_path), width=printable_w, height=3.2 * inch)
         story.append(im1)
@@ -855,7 +855,7 @@ def build_academic_pdf(output_path: str):
     story.append(PageBreak())
 
     # --- Figure 2: Storage Vault Analytics (Page 10) ---
-    fig2_path = media_dir / "test_page_1_storage_dark.png"
+    fig2_path = img_dir / "storage_vault.png"
     if fig2_path.exists():
         im2 = Image(str(fig2_path), width=printable_w, height=3.3 * inch)
         story.append(im2)
@@ -1127,5 +1127,8 @@ def build_academic_pdf(output_path: str):
 
 
 if __name__ == "__main__":
-    out_pdf = r"d:\Programming\Projects\DocuVault\DocuVault_Project_Report_Synopsis.pdf"
+    project_root = Path(__file__).resolve().parent.parent if Path(__file__).resolve().parent.name == "scripts" else Path(__file__).resolve().parent
+    docs_dir = project_root / "docs"
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    out_pdf = str(docs_dir / "DocuVault_Project_Report_Synopsis.pdf")
     build_academic_pdf(out_pdf)
