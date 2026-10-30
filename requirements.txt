@@ -1,27 +1,31 @@
-# DocuVaultAI — Production Dependencies
-# Unit 1: PyQt6 Desktop GUI
+# DocuVault — Production & Development Dependencies
+
+# UI Frontends (PyQt6 Desktop GUI & Streamlit Cloud Web Hub)
 PyQt6>=6.6.0
-
-# Unit 2: APIs & Automation
-requests>=2.31.0
-watchdog>=3.0.0
-
-# Unit 3: Web Frameworks
-Flask>=3.0.0
-Flask-CORS>=4.0.0
 streamlit>=1.30.0
 plotly>=5.18.0
 
-# Unit 4: Document Parsing & Pandas
+# Backend & REST APIs
+Flask>=3.0.0
+Flask-CORS>=4.0.0
+requests>=2.31.0
+watchdog>=3.0.0
+
+# Document Parsing, Forensics & Data Engineering
 PyMuPDF>=1.23.0
 pandas>=2.1.0
 openpyxl>=3.1.0
 
-# Unit 5: NumPy Matrix Computations & Visualizations
+# Pure Mathematical Vector Search & Visualization
 numpy>=1.26.0
 matplotlib>=3.8.0
 
-# Multi-Tenant Auth, OCR & Database
+# Authentication, OCR & Database Persistence
 keyring>=24.0.0
 winocr>=0.0.15
 pymongo>=4.6.0
+python-dotenv>=1.0.0
+
+# Documentation & Presentation Compilers (scripts/)
+reportlab>=4.0.0
+python-pptx>=0.6.21
